@@ -1,6 +1,7 @@
 # ReproIn
 
-This project is a part of the ReproNim.org suite.  Its goal is to provide a
+This project is a part of the [ReproNim Center](http://ReproNim.org)
+suite of tools and frameworks.  Its goal is to provide a
 turnkey flexible setup for automatic generation of shareable,
 version-controlled BIDS datasets from MR scanners.  To not reinvent the wheel,
 all actual software development is largely done through contribution to
@@ -47,15 +48,19 @@ You could find sample datasets with original DICOMs
   [bids_test4-20161014](http://datasets.datalad.org/?dir=/dicoms/dartmouth-phantoms/bids_test4-20161014)
   provides a basic example of multi-subject and multi-session acquisition.
 
-## Containers
+## Containers/Images etc
 
 This repository provides a [Singularity](./Singualarity) environment
 definition file used to generate a complete environment needed to run
-a conversion
+a conversion.  But also, since all work is integrated within the
+tools, any environment providing them would suffice, such as
+[NeuroDebian] docker and Singularity images, virtual appliances, and
+other Debian-based systems with NeuroDebian repositories configured,
+which would provide all necessary for ReproIn setup components.
 
-## TODOs/WiP
+## TODOs/WiP/Related
 
-- [ ] adding pre-configured DICOM received for fully turnkey deployments
+- [ ] add a pre-configured DICOM receiver for fully turnkey deployments
 - [ ] [heudiconv-monitor] to fully automate conversion of the incoming
       data
 - [ ] [BIDS dataset manipulation helper](https://github.com/INCF/bidsutils/issues/6)
