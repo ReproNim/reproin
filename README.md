@@ -7,35 +7,83 @@ version-controlled BIDS datasets from MR scanners.  To not reinvent the wheel,
 all actual software development is largely done through contribution to
 existing software projects:
 
-- [HeuDiConv](https://github.com/nipy/heudiconv) -
+- [HeuDiConv]:
   a flexible DICOM converter for organizing brain imaging data into structured
   directory layouts.
   ReproIn [heuristic] was developed and now is shipped within HeuDiConv,
   so it could be used independently of the ReproIn setup on any HeuDiConv
   installation (specify `-f reproin` to heudiconv call).
-- [DataLad](http://datalad.org):
+- [DataLad]:
   a modular version control platform and distribution for both code and
   data.  DataLad support was contributed to HeuDiConv, and could be
   enabled by adding `--datalad` option to the `heudiconv` call.
-
-The recommended invocation for the heudiconv is
-
-```shell
-$ heudiconv -c dcm2niix -f reproin --bids --datalad -o OUTPUT --files INPUT
-```
-to convert all found in `INPUT` DICOMs and place then within the
-hierarchy of DataLad datasets rooted at `OUTPUT`.
 
 ## Specification
 
 The header of the [heuristic] file describes details of the
 specification on how to organize and name study sequences at MR console.
 
+## Tutorial/HOWTO
+
+1. Install [HeuDiConv] and [DataLad]: e.g.
+   `apt-get update; apt-get install heudiconv datalad` in any NeuroDebian environment.
+   If you do not have one, you could get either of
+   - [NeuroDebian Virtual Machine](http://neuro.debian.net/vm.html)
+   - Docker image: `docker run -it --rm -v $PWD:$PWD neurodebian`
+   - Singularity image (big but useful), comes with heudiconv and
+     datalad preinstalled: `singularity pull shub://neurodebian/neurodebian`
+
+2. Collect a subject/session (or multiple of them) while placing and
+   naming sequences in the scanner following the [specification].
+   But for now we will assume that you have no such dataset yet, and
+   want to try on phantom data:
+
+        datalad install -J3 -r -g ///dicoms/dartmouth-phantoms/bids_test4-20161014
+
+   to get all subdatasets recursively, while getting the data as well
+   in parallel 3 streams.
+   This dataset is a sample of multi-session acquisition with anatomicals and
+   functional sequences on a friendly phantom impersonating two different
+   subjects (note: fieldmaps were deficient, without magnitude images).
+   You could also try other datasets such as [///dbic/QA]
+
+3. We are ready to convert all the data at once (heudiconv will sort
+   into accessions) or one accession at a time.
+   The recommended invocation for the heudiconv is
+
+        heudiconv -f reproin --bids --datalad -o OUTPUT --files INPUT
+
+   to convert all found in `INPUT` DICOMs and place then within the
+   hierarchy of DataLad datasets rooted at `OUTPUT`.  So we will start
+   with a single accession of `phantom-1/`
+
+        heudiconv -f reproin --bids --datalad -o OUTPUT --files bids_test4-20161014/phantom-1
+
+   and inspect the result under OUTPUT, probably best with `datalad ls`
+   command:
+
+        ... WiP ...
+
+### Making your sequence compatible with ReproIn heuristic
+
+#### Renaming sequences to conform the specification needed by ReproIn
+
+TODO: Describe how sequences could be renamed per study by creating a derived
+heuristic
+
+#### HeuDiConv options to overload autodetected variables:
+
+- `--subject`
+- `--session`
+- `--locator`
+
+
+
 ## Sample converted datasets
 
 You could find sample datasets with original DICOMs
 
-- [///dbic/QA](http://datasets.datalad.org/?dir=/dbic/QA) is a publicly
+- [///dbic/QA] is a publicly
   available DataLad dataset with historical data on QA scans from DBIC.
   You could use DICOM tarballs under `sourcedata/` for your sample
   conversions.
@@ -65,5 +113,10 @@ which would provide all necessary for ReproIn setup components.
       data
 - [ ] [BIDS dataset manipulation helper](https://github.com/INCF/bidsutils/issues/6)
 
+[HeuDiConv]: https://github.com/nipy/heudiconv
+[DataLad]: http://datalad.org
 [heuristic]: https://github.com/nipy/heudiconv/blob/master/heudiconv/heuristics/reproin.py
+[specification]: https://github.com/nipy/heudiconv/blob/master/heudiconv/heuristics/reproin.py
 [heudiconv-monitor]: https://github.com/nipy/heudiconv/blob/master/heudiconv/cli/monitor.py
+[DBIC]: http://dbic.dartmouth.edu
+[///dbic/QA]: http://datasets.datalad.org/?dir=/dbic/QA
