@@ -64,7 +64,11 @@ specification on how to organize and name study sequences at MR console.
 
         ... WiP ...
 
-### Making your sequence compatible with ReproIn heuristic
+### Walkthroughs: Making your sequence compatible with ReproIn heuristic
+
+- [Walkthrough #1](docs/walkthrough-1.md): guides you through
+ReproIn approach to organizing exam cards and managing canceled runs/sessions
+on Siemens scanner(s)
 
 #### Renaming sequences to conform the specification needed by ReproIn
 
