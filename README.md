@@ -23,7 +23,29 @@ existing software projects:
 The header of the [heuristic] file describes details of the
 specification on how to organize and name study sequences at MR console.
 
+## Overall workflow
+
+Schematic description of the overall setup:
+
+![Setup](docs/source/images/dbic-flow.png)
+![Setup](docs/source/images/dbic-conversions.png)
+
 ## Tutorial/HOWTO
+
+### Data collection
+
+#### Making your sequence compatible with ReproIn heuristic
+
+- [Walkthrough #1](docs/walkthrough-1.md): guides you through
+ReproIn approach to organizing exam cards and managing canceled runs/sessions
+on Siemens scanner(s)
+
+#### Renaming sequences to conform the specification needed by ReproIn
+
+TODO: Describe how sequences could be renamed per study by creating a derived
+heuristic
+
+### Conversion
 
 1. Install [HeuDiConv] and [DataLad]: e.g.
    `apt-get update; apt-get install heudiconv datalad` in any NeuroDebian environment.
@@ -64,16 +86,7 @@ specification on how to organize and name study sequences at MR console.
 
         ... WiP ...
 
-### Walkthroughs: Making your sequence compatible with ReproIn heuristic
 
-- [Walkthrough #1](docs/walkthrough-1.md): guides you through
-ReproIn approach to organizing exam cards and managing canceled runs/sessions
-on Siemens scanner(s)
-
-#### Renaming sequences to conform the specification needed by ReproIn
-
-TODO: Describe how sequences could be renamed per study by creating a derived
-heuristic
 
 #### HeuDiConv options to overload autodetected variables:
 
