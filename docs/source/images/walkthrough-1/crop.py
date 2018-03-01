@@ -14,7 +14,7 @@ def get_crop(filename):
         crop = groups['crop']
     crop_ = {
       "dot+save": '736x577+196+890',
-      "patientreg": '1030x710+191+940',
+      "patientreg": '1030x710+100+940',
       "patientconf": '1074x857+67+868',
       "exam": '505x450+0+1348',
       "exam+menu": '505x801+0+997',
