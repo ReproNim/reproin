@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/120343858.svg)](https://zenodo.org/badge/latestdoi/120343858)
+
 # ReproIn
 
 This project is a part of the [ReproNim Center](http://ReproNim.org)
