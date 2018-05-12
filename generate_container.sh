@@ -5,7 +5,7 @@ generate() {
     --base=neurodebian:stretch \
     --pkg-manager=apt \
     --install vim wget strace time ncdu gnupg curl procps datalad \
-              git-annex-standalone datalad python-nipype virtualenv \
+              git-annex-standalone python-nipype virtualenv \
               python-dcmstack python-configparser python-funcsigs \
               python-pytest dcmtk python-pip python-wheel \
     --run "curl -sL https://deb.nodesource.com/setup_6.x | bash - "\
