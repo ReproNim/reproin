@@ -1,7 +1,7 @@
 #!/bin/bash
 
-generate_docker() {
-  docker run --rm kaczmarj/neurodocker:master generate docker \
+generate() {
+  docker run --rm kaczmarj/neurodocker:master generate "$1" \
     --base=neurodebian:stretch \
     --pkg-manager=apt \
     --install vim wget strace time ncdu gnupg curl procps datalad \
@@ -19,4 +19,5 @@ generate_docker() {
     --entrypoint "/neurodocker/heudiconv.sh"
 }
 
-generate_docker > Dockerfile
+generate docker > Dockerfile
+generate singularity > Singularity
