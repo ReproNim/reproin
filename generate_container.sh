@@ -12,9 +12,9 @@ generate() {
     --install nodejs npm \
     --run "npm install -g bids-validator@0.26.11" \
     --run "mkdir /afs /inbox" \
-    --run "pip install heudiconv[all]" \
+    --run "pip install git+https://github.com/nipy/heudiconv.git@d3b7077bd24afcae459531889263dde08ae50466" \
     --dcm2niix version="v1.0.20180328" method="source" \
-    --run "echo '#!/bin/bash' >> /neurodocker/heudiconv.sh && echo 'if [ -z \"\$@\" ]; then heudiconv -h; else heudiconv \"\$@\"; fi' >> /neurodocker/heudiconv.sh && chmod +x /neurodocker/heudiconv.sh" \
+    --run "echo '#!/bin/bash' >> /neurodocker/heudiconv.sh && echo 'heudiconv \"\$@\"' >> /neurodocker/heudiconv.sh && chmod +x /neurodocker/heudiconv.sh" \
     --user=reproin \
     --entrypoint "/neurodocker/heudiconv.sh"
 }
