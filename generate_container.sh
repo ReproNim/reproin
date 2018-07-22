@@ -13,7 +13,7 @@ generate() {
     --run "npm install -g bids-validator@0.26.11" \
     --run "mkdir /afs /inbox" \
     --run "pip install heudiconv" \
-    --dcm2niix version="v1.0.20180328" method="source" \
+    --dcm2niix version="v1.0.20180622" method="source" \
     --run "echo '#!/bin/bash' >> /neurodocker/heudiconv.sh && echo 'heudiconv \"\$@\"' >> /neurodocker/heudiconv.sh && chmod +x /neurodocker/heudiconv.sh" \
     --user=reproin \
     --entrypoint "/neurodocker/heudiconv.sh"
