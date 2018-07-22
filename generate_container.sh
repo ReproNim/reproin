@@ -7,7 +7,7 @@ generate() {
     --install vim wget strace time ncdu gnupg curl procps datalad \
               git-annex-standalone python-nipype virtualenv \
               python-dcmstack python-configparser python-funcsigs \
-              python-pytest dcmtk python-pip python-wheel python-setuptools \
+              python-pytest dcmtk python-pip python-wheel python-setuptools python-datalad \
     --run "curl -sL https://deb.nodesource.com/setup_6.x | bash - "\
     --install nodejs npm \
     --run "npm install -g bids-validator@0.26.11" \
