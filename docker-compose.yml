@@ -1,0 +1,9 @@
+version: '3'
+services:
+  dcm-receiver:
+    image: mgxd/dcmrecv:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dicoms:/dicoms
+    command: storescp -v --output-directory /dicoms 8080
