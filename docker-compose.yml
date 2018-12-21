@@ -3,7 +3,17 @@ services:
   dcm-receiver:
     image: mgxd/dcmrecv:latest
     ports:
-      - "8080:8080"
+      - "${PORT}:${PORT}"
     volumes:
-      - ./dicoms:/dicoms
-    command: storescp -v --output-directory /dicoms 8080
+      - ${DICOMDIR}:/dicoms
+    command: storescp -v -sp --output-directory /dicoms ${PORT}
+
+  heudiconv:
+    build: ./cron
+    volumes:
+      - ${DICOMDIR}:/dicoms:ro
+      - ${HEUDICONV_OUTDIR}:/output
+    depends_on:
+      - dcm-receiver
+    command:
+      - /start-cron

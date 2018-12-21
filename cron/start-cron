@@ -1,0 +1,9 @@
+#!/bin/bash
+
+service cron start
+
+CRONLOG="/var/log/cron.log"
+
+while true; do
+  tail -f /var/log/cron.log
+done

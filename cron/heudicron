@@ -1,0 +1,4 @@
+# key: min (0-59) | hr (0-23) | dom (1-31) | mon (1-12) | dow (0,7=sun) | command
+
+# trigger heudiconv every day at 4am
+2 * * * * /heudiconv.sh >> /var/log/cron.log
