@@ -1,5 +1,7 @@
 #!/bin/bash
 
+crontab /etc/heudicron
+
 service cron start
 
 CRONLOG="/var/log/cron.log"

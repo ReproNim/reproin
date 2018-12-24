@@ -1,7 +1,7 @@
 version: '3'
 services:
   dcm-receiver:
-    image: mgxd/dcmrecv:latest
+    build: ./dcmrecv
     ports:
       - "${PORT}:${PORT}"
     volumes:
@@ -15,5 +15,3 @@ services:
       - ${HEUDICONV_OUTDIR}:/output
     depends_on:
       - dcm-receiver
-    command:
-      - /start-cron

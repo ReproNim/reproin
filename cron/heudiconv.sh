@@ -1,11 +1,20 @@
 #!/bin/bash
 
+echo "Running scheduled heudiconv conversion"
+
 HEUDICONV_DICOMDIR="/dicoms"
 HEUDICONV_OUTDIR="/output"
 HEUDICONV_XARGS=${HEUDICONV_XARGS:-""}
 HEUDICONV_HISTORY="${HEUDICONV_OUTDIR}/.heudiconv.history"
 
 set -eu
+
+# cron uses strip down PATH
+# pull container creation PATH variable
+if [ -f /opt/heudiconv.path ]; then
+  echo "Setting heudiconv PATHs"
+  export PATH=$(cat /opt/heudiconv.path)
+fi
 
 if [ ! -d ${HEUDICONV_DICOMDIR} ]; then
     echo "DICOM directory ${HEUDICONV_DICOMDIR} not properly set or mounted"
@@ -18,11 +27,12 @@ elif [ ! -f ${HEUDICONV_HISTORY} ]; then
 fi
 
 for DICOMS in $(ls ${HEUDICONV_DICOMDIR}); do
-   if grep "${DICOMS}" ${HEUDICONV_HISTORY} > /dev/null; then
+   if cat ${HEUDICONV_HISTORY} | awk '{print $1}' | grep "${DICOMS}" > /dev/null; then
       # existing conversion was found
       continue
    fi
 
-   CMD="heudiconv -f reproin --bids --datalad -o ${HEUDICONV_OUTDIR}/${DICOMS} --files ${HEUDICONV_DICOMDIR}/${DICOMS} ${HEUDICONV_XARGS}"
+   CMD="heudiconv -f reproin --bids --datalad -o ${HEUDICONV_OUTDIR} --files ${HEUDICONV_DICOMDIR}/${DICOMS} ${HEUDICONV_XARGS}"
    ${CMD}
+   printf "${DICOMS}\t$(date)\n" >> ${HEUDICONV_HISTORY}
 done
