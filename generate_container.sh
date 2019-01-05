@@ -20,5 +20,17 @@ generate() {
     --entrypoint "/neurodocker/heudiconv.sh"
 }
 
+version=$(git describe)
+
 generate docker > Dockerfile
 generate singularity > Singularity
+
+# Make versioned copy for Singularity Hub
+cp Singularity Singularity.${version}
+
+if echo $version | grep -e '-g'; then
+    echo "ERROR: Evil Yarik disabled updates of the containers without releases"
+    echo "       So this command will 'fail', and if output is alright, reset, tag "
+    echo "       (should match frozen version of heudiconv) and redo"
+    exit 1
+fi
