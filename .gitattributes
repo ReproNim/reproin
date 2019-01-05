@@ -1,0 +1,3 @@
+* annex.backend=MD5E
+* annex.largefiles=(not(mimetype=text/*))
+**/.git* annex.largefiles=nothing
