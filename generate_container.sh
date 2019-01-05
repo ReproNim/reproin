@@ -1,10 +1,13 @@
 #!/bin/bash
 
+set -eu
+
 generate() {
   #neurodocker generate "$1" \
-  docker run --rm kaczmarj/neurodocker:master generate "$1" \
+  docker run --rm kaczmarj/neurodocker:0.4.3 generate "$1" \
     --base=neurodebian:stretch \
     --pkg-manager=apt \
+    --ndfreeze date=20190105 \
     --install vim wget strace time ncdu gnupg curl procps datalad pigz \
               git-annex-standalone python-nipype virtualenv \
               python-dcmstack python-configparser python-funcsigs \
