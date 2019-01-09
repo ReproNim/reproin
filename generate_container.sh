@@ -12,12 +12,11 @@ generate() {
               git-annex-standalone python-nipype virtualenv \
               python-dcmstack python-configparser python-funcsigs \
               python-pytest dcmtk python-pip python-wheel python-setuptools python-datalad \
+              heudiconv dcm2niix \
     --run "curl -sL https://deb.nodesource.com/setup_6.x | bash - "\
     --install nodejs npm \
     --run "npm install -g bids-validator@1.1.1" \
     --run "mkdir /afs /inbox" \
-    --run "pip install heudiconv" \
-    --dcm2niix version="v1.0.20181125" method="source" \
     --run "echo '#!/bin/bash' >> /neurodocker/heudiconv.sh && echo 'heudiconv \"\$@\"' >> /neurodocker/heudiconv.sh && chmod +x /neurodocker/heudiconv.sh" \
     --user=reproin \
     --entrypoint "/neurodocker/heudiconv.sh"
