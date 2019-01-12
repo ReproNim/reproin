@@ -12,7 +12,7 @@ generate() {
               git-annex-standalone python-nipype virtualenv \
               python-dcmstack python-configparser python-funcsigs \
               python-pytest dcmtk python-pip python-wheel python-setuptools python-datalad \
-              heudiconv dcm2niix \
+              heudiconv dcm2niix python-pytest \
     --run "curl -sL https://deb.nodesource.com/setup_6.x | bash - "\
     --install nodejs npm \
     --run "npm install -g bids-validator@1.1.1" \
