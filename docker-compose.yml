@@ -9,7 +9,7 @@ services:
     command: storescp -v -sp --output-directory /dicoms ${PORT}
 
   heudiconv:
-    build: ./cron
+    build: ./heudicron
     volumes:
       - ${DICOMDIR}:/dicoms:ro
       - ${HEUDICONV_OUTDIR}:/output
