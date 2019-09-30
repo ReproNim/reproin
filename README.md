@@ -117,7 +117,7 @@ You could find sample datasets with original DICOMs
 
 ## Containers/Images etc
 
-This repository provides a [Singularity](./Singualarity) environment
+This repository provides a [Singularity](./Singularity) environment
 definition file used to generate a complete environment needed to run
 a conversion.  But also, since all work is integrated within the
 tools, any environment providing them would suffice, such as
