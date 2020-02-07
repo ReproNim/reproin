@@ -18,7 +18,7 @@ generate() {
 		--base=neurodebian:buster \
 		--pkg-manager=apt \
 		--ndfreeze date=20191217 \
-		--install vim wget strace time ncdu gnupg curl procps datalad pigz \
+		--install vim wget strace time ncdu gnupg curl procps datalad pigz less tree \
 				  git-annex-standalone python-nipype virtualenv \
 				  python-dcmstack python-configparser python-funcsigs \
 				  python-pytest dcmtk python-pip python-wheel \
