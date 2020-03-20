@@ -19,7 +19,7 @@ generate() {
 		--pkg-manager=apt \
 		--ndfreeze date=20191217 \
 		--install vim wget strace time ncdu gnupg curl procps datalad pigz less tree \
-				  git-annex-standalone python-nipype virtualenv \
+				  git-annex-standalone python-nipype virtualenv shellcheck \
 				  python-dcmstack python-configparser python-funcsigs \
 				  python-pytest dcmtk python-pip python-wheel \
 				  python-setuptools python-datalad python-filelock \
