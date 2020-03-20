@@ -1,0 +1,156 @@
+#!/bin/bash
+#
+# A helper to assist using heudiconv with reproin heuristic in a (proto)typical
+# setup.
+#
+# ATM paths and setup is DBIC specific. TODO - make it use a config file
+#
+set -eu
+
+#
+# A Master run script for a study
+#
+
+if [ "$#" = 0 ]; then
+	echo -n "heudiconv: "
+	heudiconv --version
+	echo -n "dcm2niix: "
+	dcm2niix -v
+	exit 0
+fi
+
+study="$1"
+action="$2"
+
+# TODO: Add option to remap
+ostudy=$study; 
+# TODO: Add option to limit by year/month
+# TODO: Add option to "hardcode" add session
+		
+
+bidsdir="/inbox/BIDS"
+studydir="$bidsdir/$study"
+
+if [ ! -e "$studydir" ]; then
+	echo "I: no study directory yet - $studydir"
+	cd /tmp  # to be safe/avoid side-effects
+else
+	cd "$studydir"  # implies it exists!!! TODO
+fi
+heudiconvdir=".heudiconv"
+skipfile=".heudiconv/sid-skip" # TODO: check what used now
+vallog=".heudiconv/bids-validator.log"
+valconfig=".bids-validator-config.json"
+if [ ! -e "$valconfig" ]; then
+	valconfig=~/heudiconv/heudiconv/heuristics/reproin_validator.cfg
+fi
+
+
+case "$action" in
+create)
+	echo "not implemented"
+	exit 1
+	# after creating a dataset tag it with 0.0.0
+	# This would allow for a sensible git describe output
+	git tag -m "The beginning" 0.0.0
+	;;
+accession-skip)
+	echo "not implemented"
+	exit 1
+	# TODO: mark provided "$3" accession as one to skip
+	git annex unlock "$skipfile"
+	echo "$3 ${4:-}" > "$skipfile"
+	git annex add "$skipfile"
+	git commit -m 'skip an accession' "$skipfile"
+	;;
+echo|eval)
+	# TODO: make it do a pass and verify that no duplicate/existing session+subject in
+	# what to be converted.  We might need to remove some older one or mark some as
+	# to not do
+	targetsub="${3:-}"
+	heuristic="reproin"
+	if [ -e "$heudiconvdir/heuristic.py" ]; then
+		echo "Will use study specific heuristic"
+		heuristic=".heudiconv/heuristic.py"
+	fi
+
+	# TODO: use datalad run/containers-run
+	grep -h -B1 "$ostudy'" ~/heudiconv-*txt  \
+	| grep 'DICOM.*/\(qa\|A\)' \
+	| sort \
+	| uniq \
+	| while read d; do 
+		td=${d//\/001*/};  
+		# TODO: too ad-hoc, do properly
+		subses=$(grep -h -A1 $td ~/heudiconv-*txt | awk '/StudySess/{print $2, $3}' | uniq); 
+		sub=$(echo "$subses" | sed -e "s,.*subject=',,g" -e "s,'),,g")
+		ses=$(echo "$subses" | sed -e "s,.*session='*,,g" -e "s/'*, .*//g" -e "s,None,,g")
+		if [ -z "$sub" ]; then
+			echo "ERROR: Empty subject for $d"
+			exit 1
+		fi
+		if [ -n "$targetsub" ] && [ "$sub" != "$targetsub" ]; then
+			echo "Skipping subject $sub"
+			continue
+		fi
+		#echo "Subject: $sub  Session: $ses"
+		subsesheudiconvdir=$heudiconvdir/$sub
+		if [ ! -z "$ses" ]; then
+			subsesheudiconvdir+=/$ses
+		fi
+		mkdir -p "$subsesheudiconvdir"
+		if grep -q -R $td $heudiconvdir/* 2>/dev/null; then
+			echo "$td done  # $subses"
+			continue
+		fi
+		
+		cmd="/usr/bin/heudiconv -c dcm2niix -o $bidsdir --bids -l $study -f $heuristic -g accession_number --files  $td"
+		case "$action" in
+		echo)
+			echo "$cmd # subject=$sub session=$ses"
+			;;
+		eval)
+			echo "Converting subject $sub for session $ses ($studydir)"
+			mkdir -p "$subsesheudiconvdir"
+			logfile="$subsesheudiconvdir/heudiconv.log"
+			eval "$cmd" > "$logfile" 2>&1
+
+			echo "Runing validator now"
+			( 
+				builtin cd -
+				"$0" "$study" "validator"  || "echo validator failed; check $valfile"
+			)
+			if [ -e "$vallog" ]; then
+                           cp --reflink=auto "$vallog" "$subsesheudiconvdir/bids-validator.log"
+			fi
+			datalad save -d . -m "Converted subject $sub session $ses" . .heudiconv
+			;;
+		esac
+	done
+	if [ "$action" = "eval" ]; then
+		echo "Errors/warnings from current state of the validator:"
+		grep -E '^\s*[0-9]+: \[' "$vallog"
+	fi
+
+	;;
+validator)
+	bids-validator --verbose -c "$valconfig" $PWD
+	;;
+validator-save)
+	rm -f "$vallog"
+	vallog_="$PWD/$vallog"
+	(
+		builtin cd -
+		"$0" "$study" "validator" > "$vallog_"
+	)
+	echo "Validator output in $vallog_"
+	datalad save -d . -m "New BIDS validator output" $vallog
+	;;
+validator-show)
+	${PAGER:-vim} $vallog
+	;;
+*)
+	echo "Unknown action $action" >&2
+	exit 1
+	;;
+esac
