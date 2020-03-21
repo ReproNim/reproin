@@ -19,16 +19,37 @@ if [ "$#" = 0 ]; then
 	exit 0
 fi
 
-study="$1"
-action="$2"
+dicomdir="/inbox/DICOM"
+bidsdir="/inbox/BIDS"
+listdir="$HOME/reproin-lists"
+
+heuristic="reproin"
+
+heudiconvdir=".heudiconv"
+skipfile=".heudiconv/sid-skip" # TODO: check what used now
+vallog=".heudiconv/bids-validator.log"
+valconfig=".bids-validator-config.json"
+# common prefix for heudiconv invocation
+heudiconvcmd="/usr/bin/heudiconv -c dcm2niix --bids -o $bidsdir -g accession_number"
+
+action="$1"
+# early
+if [ "$action" = "lists-update" ]; then
+	# TODO: get Y and M as args
+	Y=${2:-`date +%Y`}; 
+	M=${3:-`date +%m`}; 
+        eval "$heudiconvcmd -f $heuristic --command ls --files $dicomdir/$Y/$M/*/*/001*" >| $listdir/$Y${M}xx.txt
+	exit 0
+fi
+
+# The rest of the commands operate on a given study
+study="$2"
 
 # TODO: Add option to remap
 ostudy=$study; 
 # TODO: Add option to limit by year/month
 # TODO: Add option to "hardcode" add session
 		
-
-bidsdir="/inbox/BIDS"
 studydir="$bidsdir/$study"
 
 if [ ! -e "$studydir" ]; then
@@ -37,22 +58,37 @@ if [ ! -e "$studydir" ]; then
 else
 	cd "$studydir"  # implies it exists!!! TODO
 fi
-heudiconvdir=".heudiconv"
-skipfile=".heudiconv/sid-skip" # TODO: check what used now
-vallog=".heudiconv/bids-validator.log"
-valconfig=".bids-validator-config.json"
+
 if [ ! -e "$valconfig" ]; then
 	valconfig=~/heudiconv/heudiconv/heuristics/reproin_validator.cfg
 fi
 
+# Track already seen
+subses_ids=""
 
 case "$action" in
-create)
-	echo "not implemented"
-	exit 1
+study-create)
+	if [ -e "$studydir" ]; then
+		echo "$study already exists, nothing todo"
+		exit 1;
+	fi
+	cd "$bidsdir"
+	echo "$study" | tr '/' '\n' \
+	| while read d; do
+		if [ ! -e "$d" ] ; then
+			if [ "$PWD/$d" == "$studydir" ]; then
+				datalad create --fake-dates -d . "$d"
+			else
+				datalad create -d . "$d"
+			fi
+		fi
+		cd "$d"
+	done
+	cd "$studydir"
+	datalad run-procedure cfg_reproin_bids
+	git tag -m "The beginning" 0.0.0
 	# after creating a dataset tag it with 0.0.0
 	# This would allow for a sensible git describe output
-	git tag -m "The beginning" 0.0.0
 	;;
 accession-skip)
 	echo "not implemented"
@@ -63,28 +99,33 @@ accession-skip)
 	git annex add "$skipfile"
 	git commit -m 'skip an accession' "$skipfile"
 	;;
-echo|eval)
+study-show|study-convert)
 	# TODO: make it do a pass and verify that no duplicate/existing session+subject in
 	# what to be converted.  We might need to remove some older one or mark some as
 	# to not do
 	targetsub="${3:-}"
-	heuristic="reproin"
 	if [ -e "$heudiconvdir/heuristic.py" ]; then
 		echo "Will use study specific heuristic"
 		heuristic=".heudiconv/heuristic.py"
 	fi
 
 	# TODO: use datalad run/containers-run
-	grep -h -B1 "$ostudy'" ~/heudiconv-*txt  \
+	grep -h -B1 "$ostudy'" $listdir/*xx.txt  \
 	| grep 'DICOM.*/\(qa\|A\)' \
 	| sort \
 	| uniq \
 	| while read d; do 
 		td=${d//\/001*/};  
 		# TODO: too ad-hoc, do properly
-		subses=$(grep -h -A1 $td ~/heudiconv-*txt | awk '/StudySess/{print $2, $3}' | uniq); 
+		subses=$(grep -h -A1 $td $listdir/*xx.txt | awk '/StudySess/{print $2, $3}' | uniq); 
 		sub=$(echo "$subses" | sed -e "s,.*subject=',,g" -e "s,'),,g")
 		ses=$(echo "$subses" | sed -e "s,.*session='*,,g" -e "s/'*, .*//g" -e "s,None,,g")
+		subses_id="sub=$sub:ses=$ses"
+		if [[ " $subses_ids " =~ " ${subses_id} " ]]; then
+			echo "WARNING: $subses_id already known"
+		else
+			subses_ids+=" $subses_id"
+		fi
 		if [ -z "$sub" ]; then
 			echo "ERROR: Empty subject for $d"
 			exit 1
@@ -104,12 +145,12 @@ echo|eval)
 			continue
 		fi
 		
-		cmd="/usr/bin/heudiconv -c dcm2niix -o $bidsdir --bids -l $study -f $heuristic -g accession_number --files  $td"
+		cmd="$heudiconvcmd -f $heuristic -l $study --files $td"
 		case "$action" in
-		echo)
+		study-show)
 			echo "$cmd # subject=$sub session=$ses"
 			;;
-		eval)
+		study-convert)
 			echo "Converting subject $sub for session $ses ($studydir)"
 			mkdir -p "$subsesheudiconvdir"
 			logfile="$subsesheudiconvdir/heudiconv.log"
@@ -118,16 +159,16 @@ echo|eval)
 			echo "Runing validator now"
 			( 
 				builtin cd -
-				"$0" "$study" "validator"  || "echo validator failed; check $valfile"
+				"$0" "validator-save" "$study" || "echo validator failed; check $vallog"
 			)
 			if [ -e "$vallog" ]; then
                            cp --reflink=auto "$vallog" "$subsesheudiconvdir/bids-validator.log"
 			fi
-			datalad save -d . -m "Converted subject $sub session $ses" . .heudiconv
+			datalad save -m "Converted subject $sub session $ses" . .heudiconv
 			;;
 		esac
 	done
-	if [ "$action" = "eval" ]; then
+	if [ "$action" = "study-convert" ]; then
 		echo "Errors/warnings from current state of the validator:"
 		grep -E '^\s*[0-9]+: \[' "$vallog"
 	fi
@@ -141,7 +182,7 @@ validator-save)
 	vallog_="$PWD/$vallog"
 	(
 		builtin cd -
-		"$0" "$study" "validator" > "$vallog_"
+		"$0" "validator" "$study" > "$vallog_"
 	)
 	echo "Validator output in $vallog_"
 	datalad save -d . -m "New BIDS validator output" $vallog
