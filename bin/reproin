@@ -10,18 +10,17 @@ set -eu
 #
 # A Master run script for a study
 #
-
+dcm2niix_version=$(dcm2niix -v|grep '^v')
 if [ "$#" = 0 ]; then
 	echo -n "heudiconv: "
 	heudiconv --version
-	echo -n "dcm2niix: "
-	dcm2niix -v
+	echo "dcm2niix: $dcm2niix_version"
 	exit 0
 fi
 
 dicomdir="/inbox/DICOM"
 bidsdir="/inbox/BIDS"
-listdir="$HOME/reproin-lists"
+listdir="$bidsdir/reproin/lists"
 
 heuristic="reproin"
 
@@ -32,7 +31,9 @@ valconfig=".bids-validator-config.json"
 # common prefix for heudiconv invocation
 heudiconvcmd="/usr/bin/heudiconv -c dcm2niix --bids -o $bidsdir -g accession_number"
 
+self=$(realpath "$0")
 action="$1"
+
 # early
 if [ "$action" = "lists-update" ]; then
 	# TODO: get Y and M as args
@@ -90,19 +91,30 @@ study-create)
 	# after creating a dataset tag it with 0.0.0
 	# This would allow for a sensible git describe output
 	;;
-accession-skip)
-	echo "not implemented"
-	exit 1
-	# TODO: mark provided "$3" accession as one to skip
-	git annex unlock "$skipfile"
-	echo "$3 ${4:-}" > "$skipfile"
+study-accession-skip)
+	if [ -L "$skipfile" ]; then
+		(
+		cd "$(dirname $skipfile)"
+		git annex unlock "$(basename $skipfile)"
+		)
+	fi
+	echo "$3 ${4:-}" >> "$skipfile"
 	git annex add "$skipfile"
-	git commit -m 'skip an accession' "$skipfile"
+	datalad save -d. -m 'skip an accession' "$skipfile"
 	;;
 study-show|study-convert)
 	# TODO: make it do a pass and verify that no duplicate/existing session+subject in
 	# what to be converted.  We might need to remove some older one or mark some as
 	# to not do
+
+	# Check that version of the dcm2niix is the same
+	dcm2niix_study=$(git grep -h ConversionSoftwareVersion | awk '{print $2;}' | sed -e 's,[",],,g' | sort | uniq)
+	if [ ! -z "$dcm2niix_study" ] && [ "$dcm2niix_study" != "$dcm2niix_version" ]; then
+		echo "E: Wrong environment - dcm2niix $dcm2niix_version when study used $dcm2niix_study"
+		exit 1
+	fi
+
+
 	targetsub="${3:-}"
 	if [ -e "$heudiconvdir/heuristic.py" ]; then
 		echo "Will use study specific heuristic"
@@ -121,6 +133,10 @@ study-show|study-convert)
 		sub=$(echo "$subses" | sed -e "s,.*subject=',,g" -e "s,'),,g")
 		ses=$(echo "$subses" | sed -e "s,.*session='*,,g" -e "s/'*, .*//g" -e "s,None,,g")
 		subses_id="sub=$sub:ses=$ses"
+		if grep -q -R $td "$skipfile" 2>/dev/null; then
+			echo "$td skip  # $subses"
+			continue
+		fi
 		if [[ " $subses_ids " =~ " ${subses_id} " ]]; then
 			echo "WARNING: $subses_id already known"
 		else
@@ -139,7 +155,6 @@ study-show|study-convert)
 		if [ ! -z "$ses" ]; then
 			subsesheudiconvdir+=/$ses
 		fi
-		mkdir -p "$subsesheudiconvdir"
 		if grep -q -R $td $heudiconvdir/* 2>/dev/null; then
 			echo "$td done  # $subses"
 			continue
@@ -157,35 +172,31 @@ study-show|study-convert)
 			eval "$cmd" > "$logfile" 2>&1
 
 			echo "Runing validator now"
-			( 
-				builtin cd -
-				"$0" "validator-save" "$study" || "echo validator failed; check $vallog"
-			)
+			"$self" "validator-save" "$study" || "echo validator failed; check $vallog"
 			if [ -e "$vallog" ]; then
                            cp --reflink=auto "$vallog" "$subsesheudiconvdir/bids-validator.log"
 			fi
-			datalad save -m "Converted subject $sub session $ses" . .heudiconv
+			datalad save -m "Converted subject $sub session $ses" -r . .heudiconv .heudiconv/*
 			;;
 		esac
 	done
 	if [ "$action" = "study-convert" ]; then
-		echo "Errors/warnings from current state of the validator:"
-		grep -E '^\s*[0-9]+: \[' "$vallog"
+		"$self" "validator-summary" "$study"
 	fi
 
 	;;
 validator)
-	bids-validator --verbose -c "$valconfig" $PWD
+	bids-validator --verbose -c "$valconfig" $PWD || echo "WARNING: validator exited with exit code $?"
 	;;
 validator-save)
 	rm -f "$vallog"
-	vallog_="$PWD/$vallog"
-	(
-		builtin cd -
-		"$0" "validator" "$study" > "$vallog_"
-	)
-	echo "Validator output in $vallog_"
+	"$self" "validator" "$study" > "$vallog"
+	echo "Validator output in $PWD/$vallog"
 	datalad save -d . -m "New BIDS validator output" $vallog
+	;;
+validator-summary)
+	echo "Errors/warnings from current state of the validator:"
+	grep -E '^\s*[0-9]+: \[' "$vallog"
 	;;
 validator-show)
 	${PAGER:-vim} $vallog
