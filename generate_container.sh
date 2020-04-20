@@ -10,14 +10,14 @@ generate() {
 		apt_pkgs=python-pip
 		run_cmd="pip install git+https://github.com/nipy/heudiconv@master"
 	else
-		apt_pkgs=heudiconv
+		apt_pkgs="heudiconv=0.8.0-1"
 		run_cmd=":"
 	fi
 	#neurodocker generate "$1" \
 	docker run --rm kaczmarj/neurodocker:master generate "$1" \
 		--base=neurodebian:buster \
 		--pkg-manager=apt \
-		--ndfreeze date=20191217 \
+		--ndfreeze date=20200420T144554Z \
 		--install vim wget strace time ncdu gnupg curl procps datalad pigz less tree \
 				  git-annex-standalone python-nipype virtualenv shellcheck \
 				  python-dcmstack python-configparser python-funcsigs \
@@ -27,7 +27,7 @@ generate() {
 		--run "$run_cmd" \
 		--run "curl -sL https://deb.nodesource.com/setup_6.x | bash - " \
 		--install nodejs npm \
-		--run "npm install -g bids-validator@1.3.12" \
+		--run "npm install -g bids-validator@1.5.1" \
 		--run "mkdir /afs /inbox" \
 		--run "echo '#!/bin/bash' >> /neurodocker/heudiconv.sh && echo 'set -eu; heudiconv \"\$@\"' >> /neurodocker/heudiconv.sh && chmod +x /neurodocker/heudiconv.sh" \
 		--user=reproin \
