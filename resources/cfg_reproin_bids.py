@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Procedure for default configuration of ReproIn BIDS dataset
 
 It slightly diverges from original datalad-neuroimaging cfg_bids in
@@ -7,8 +8,10 @@ would go under git-annex.
 
 import os
 import sys
+from pathlib import Path  # for compatibility with older DataLad lacking .pathobj
 from datalad.distribution.dataset import require_dataset
 from datalad.support import path as op
+#from datalad.support.external_versions import external_versions as ev
 
 ds = require_dataset(
     sys.argv[1],
@@ -57,7 +60,8 @@ for paths, largefile in [
 
 
 def add_line_to_file(subpath, line):
-    f = ds.pathobj / subpath
+    pathobj = Path(ds.path)
+    f = pathobj / subpath
     if not f.parent.exists():
         f.parent.mkdir()
     content = f.read_text().split(os.linesep) if f.exists() else []
@@ -68,9 +72,14 @@ def add_line_to_file(subpath, line):
 # Everything under .heudiconv should go into annex.
 # But it might be a subdataset or not, so we will
 # just adjust it directly
-add_line_to_file(
-    op.join(".heudiconv", ".gitattributes"),
-    "* annex.largefiles=anything")
+for l in [
+    "* annex.largefiles=anything",
+    "**/.git* annex.largefiles=nothing",
+    ]:
+    add_line_to_file(
+        op.join(".heudiconv", ".gitattributes"),
+        l)
+    
 add_line_to_file(
     op.join(".heudiconv", ".gitignore"),
     "*.pyc")
@@ -81,7 +90,6 @@ ds.save(
           op.join(".heudiconv", ".gitattributes"),
           op.join(".heudiconv", ".gitignore")],
     message="Apply default ReproIn BIDS dataset setup",
-    to_git=True,
 )
 
 # run metadata type config last, will do another another commit

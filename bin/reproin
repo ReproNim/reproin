@@ -1,0 +1,223 @@
+#!/bin/bash
+#
+# A helper to assist using heudiconv with reproin heuristic in a (proto)typical
+# setup.
+#
+# ATM paths and setup is DBIC specific. TODO - make it use a config file
+#
+set -eu
+
+#
+# A Master run script for a study
+#
+dcm2niix_version=$(dcm2niix -v|grep '^v' || dcm2niix -v|sed -n -e '/dcm2niiX version v/s,.*X version ,,gp'| sed -e 's,[ \t].*,,g')
+if [ "$#" = 0 ]; then
+	echo -n "heudiconv: "
+	heudiconv --version
+	echo "dcm2niix: $dcm2niix_version"
+	exit 0
+fi
+
+dicomdir="/inbox/DICOM"
+bidsdir="/inbox/BIDS"
+listdir="$bidsdir/reproin/lists"
+
+heuristic="reproin"
+
+heudiconvdir=".heudiconv"
+skipfile=".heudiconv/sid-skip" # TODO: check what used now
+vallog=".heudiconv/bids-validator.log"
+valconfig=".bids-validator-config.json"
+# common prefix for heudiconv invocation
+heudiconvcmd="heudiconv -c dcm2niix --bids -o $bidsdir -g accession_number"
+
+self=$(realpath "$0")
+action="$1"
+
+# early
+if [ "$action" = "lists-update" ]; then
+	# TODO: get Y and M as args
+	Y=${2:-`date +%Y`}; 
+	M=${3:-`date +%m`}; 
+        eval "$heudiconvcmd -f $heuristic --command ls --files $dicomdir/$Y/$M/*/*/001*" >| $listdir/$Y${M}xx.txt
+	exit 0
+fi
+
+# The rest of the commands operate on a given study
+study=${2#*:}
+
+# TODO: Add option to remap -- record those remappings somehow!
+# For now allowing for ostudy:study mapping in cmdline
+ostudy="${2%%:*}"
+# TODO: Add option to limit by year/month
+# TODO: Add option to "hardcode" add session
+		
+studydir="$bidsdir/$study"
+
+if [ ! -e "$studydir" ]; then
+	echo "I: no study directory yet - $studydir"
+	cd /tmp  # to be safe/avoid side-effects
+else
+	cd "$studydir"  # implies it exists!!! TODO
+fi
+
+if [ ! -e "$valconfig" ]; then
+	valconfig=~/heudiconv/heudiconv/heuristics/reproin_validator.cfg
+fi
+
+# Track already seen
+subses_ids=""
+
+case "$action" in
+study-create)
+	if [ -e "$studydir" ]; then
+		echo "$study already exists, nothing todo"
+		exit 1;
+	fi
+	cd "$bidsdir"
+	echo "$study" | tr '/' '\n' \
+	| while read d; do
+		if [ ! -e "$d" ] ; then
+			if [ "$PWD/$d" == "$studydir" ]; then
+				datalad create --fake-dates -d . "$d"
+			else
+				datalad create -d . "$d"
+			fi
+		fi
+		cd "$d"
+	done
+	cd "$studydir"
+	datalad run-procedure cfg_reproin_bids
+	git tag -m "The beginning" 0.0.0
+	# after creating a dataset tag it with 0.0.0
+	# This would allow for a sensible git describe output
+	;;
+study-accession-skip)
+	if [ -L "$skipfile" ]; then
+		(
+		cd "$(dirname $skipfile)"
+		git annex unlock "$(basename $skipfile)"
+		)
+	fi
+	echo "$3 ${4:-}" >> "$skipfile"
+	git annex add "$skipfile"
+	datalad save -d. -m 'skip an accession' "$skipfile"
+	;;
+study-show|study-convert)
+	# TODO: make it do a pass and verify that no duplicate/existing session+subject in
+	# what to be converted.  We might need to remove some older one or mark some as
+	# to not do
+
+	# Check that version of the dcm2niix is the same
+	dcm2niixs_study=( $(git grep -h ConversionSoftwareVersion | awk '{print $2;}' | sed -e 's,[",],,g' | sort | uniq) )
+	if [[ ${#dcm2niixs_study[@]} != 1 ]]; then
+		echo "W: Study already used multiple versions of dcm2niix: ${dcm2niixs_study[@]}"
+	fi
+	dcm2niix_study=${dcm2niixs_study[-1]}
+	if [ ! -z "$dcm2niix_study" ] && [ "$dcm2niix_study" != "$dcm2niix_version" ]; then
+		msg="Wrong environment - dcm2niix $dcm2niix_version when study used $dcm2niix_study"
+		case "$action" in
+		study-convert)
+			echo "E: $msg" >&2
+			exit 1
+		esac
+		echo "W: $msg"
+	fi
+
+
+	targetsub="${3:-}"
+	if [ -e "$heudiconvdir/heuristic.py" ]; then
+		echo "Will use study specific heuristic"
+		heuristic=".heudiconv/heuristic.py"
+	fi
+
+	# TODO: use datalad run/containers-run
+	grep -h -B1 "$ostudy'" $listdir/*xx.txt  \
+	| grep 'DICOM.*/\(qa\|A\)' \
+	| sort \
+	| uniq \
+	| while read d; do 
+		td=${d//\/001*/};  
+		# TODO: too ad-hoc, do properly
+		subses=$(grep -h -A1 $td $listdir/*xx.txt | awk '/StudySess/{print $2, $3}' | uniq); 
+		sub=$(echo "$subses" | sed -e "s,.*subject=',,g" -e "s,'),,g")
+		ses=$(echo "$subses" | sed -e "s,.*session='*,,g" -e "s/'*, .*//g" -e "s,None,,g")
+		subses_id="sub=$sub:ses=$ses"
+		if grep -q -R $td "$skipfile" 2>/dev/null; then
+			echo "$td skip  # $subses"
+			continue
+		fi
+		if [[ " $subses_ids " =~ " ${subses_id} " ]]; then
+			echo "WARNING: $subses_id already known"
+		else
+			subses_ids+=" $subses_id"
+		fi
+		if [ -z "$sub" ]; then
+			echo "ERROR: Empty subject for $d"
+			exit 1
+		fi
+		if [ -n "$targetsub" ] && [ "$sub" != "$targetsub" ]; then
+			echo "Skipping subject $sub since != $targetsub"
+			continue
+		fi
+		#echo "Subject: $sub  Session: $ses"
+		subsesheudiconvdir=$heudiconvdir/$sub
+		if [ ! -z "$ses" ]; then
+			subsesheudiconvdir+=/ses-$ses
+		fi
+		if grep -q -R $td $heudiconvdir/* 2>/dev/null; then
+			echo "$td done  # $subses"
+			continue
+		fi
+		
+		cmd="$heudiconvcmd -f $heuristic -l $study --files $td"
+		case "$action" in
+		study-show)
+			echo "$cmd # subject=$sub session=$ses"
+			;;
+		study-convert)
+			echo "Converting subject $sub for session $ses ($studydir)"
+			mkdir -p "$subsesheudiconvdir"
+			logfile="$subsesheudiconvdir/heudiconv.log"
+			if ! eval "$cmd" > "$logfile" 2>&1; then
+				echo "E: conversion script exited with $?. Please check details in $studydir/$logfile."
+			        echo "   The tail of it is:"
+				tail "$logfile"
+				exit 1
+			fi
+
+			echo "Runing validator now"
+			"$self" "validator-save" "$study" || "echo validator failed; check $vallog"
+			if [ -e "$vallog" ]; then
+                           cp --reflink=auto "$vallog" "$subsesheudiconvdir/bids-validator.log"
+			fi
+			datalad save -m "Converted subject $sub session $ses" -r . .heudiconv .heudiconv/*
+			;;
+		esac
+	done
+	if [ "$action" = "study-convert" ]; then
+		"$self" "validator-summary" "$study" || echo "WARNING: Failed to provide validator summary: $?"
+	fi
+
+	;;
+validator)
+	bids-validator --verbose -c "$valconfig" $PWD || echo "WARNING: validator exited with exit code $?"
+	;;
+validator-save)
+	rm -f "$vallog"
+	"$self" "validator" "$study" > "$vallog"
+	echo "Validator output in $PWD/$vallog"
+	datalad save -d . -m "New BIDS validator output" $vallog
+	;;
+validator-summary)
+	echo "Errors/warnings from current state of the validator:"
+	grep -E '^\s*[0-9]+: \[' "$vallog"
+	;;
+validator-show)
+	${PAGER:-vim} $vallog
+	;;
+*)
+	echo "Unknown action $action" >&2
+	exit 1
+	;;
+esac
