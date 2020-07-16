@@ -196,7 +196,7 @@ study-show|study-convert)
 		esac
 	done
 	if [ "$action" = "study-convert" ]; then
-		"$self" "validator-summary" "$study"
+		"$self" "validator-summary" "$study" || echo "WARNING: Failed to provide validator summary: $?"
 	fi
 
 	;;
