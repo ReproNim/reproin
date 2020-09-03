@@ -113,15 +113,19 @@ study-show|study-convert)
 	if [[ ${#dcm2niixs_study[@]} != 1 ]]; then
 		echo "W: Study already used multiple versions of dcm2niix: ${dcm2niixs_study[@]}"
 	fi
-	dcm2niix_study=${dcm2niixs_study[-1]}
-	if [ ! -z "$dcm2niix_study" ] && [ "$dcm2niix_study" != "$dcm2niix_version" ]; then
-		msg="Wrong environment - dcm2niix $dcm2niix_version when study used $dcm2niix_study"
-		case "$action" in
-		study-convert)
-			echo "E: $msg" >&2
-			exit 1
-		esac
-		echo "W: $msg"
+	if [ -n "${dcm2niixs_study:-}" ]; then
+		dcm2niix_study=${dcm2niixs_study[-1]}
+		if [ ! -z "$dcm2niix_study" ] && [ "$dcm2niix_study" != "$dcm2niix_version" ]; then
+			msg="Wrong environment - dcm2niix $dcm2niix_version when study used $dcm2niix_study"
+			case "$action" in
+			study-convert)
+				if [ -z "${REPROIN_ALLOW_WRONG_ENVIRONMENT:-}" ]; then
+					echo "E: $msg" >&2
+					exit 1
+				fi
+			esac
+			echo "W: $msg"
+		fi
 	fi
 
 
@@ -164,6 +168,10 @@ study-show|study-convert)
 		subsesheudiconvdir=$heudiconvdir/$sub
 		if [ ! -z "$ses" ]; then
 			subsesheudiconvdir+=/ses-$ses
+		fi
+		if /bin/ls "$subsesheudiconvdir/" 2>/dev/null | grep -q . ; then
+			echo "$td done  # $subses  since $subsesheudiconvdir exists"
+			continue
 		fi
 		if grep -q -R $td $heudiconvdir/* 2>/dev/null; then
 			echo "$td done  # $subses"
