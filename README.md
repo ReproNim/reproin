@@ -53,9 +53,8 @@ heuristic
    `apt-get update; apt-get install heudiconv datalad` in any NeuroDebian environment.
    If you do not have one, you could get either of
    - [NeuroDebian Virtual Machine](http://neuro.debian.net/vm.html)
-   - Docker image: `docker run -it --rm -v $PWD:$PWD neurodebian`
-   - Singularity image (big but useful), comes with heudiconv and
-     datalad preinstalled: `singularity pull shub://neurodebian/neurodebian`
+   - ReproIn Docker image: `docker run -it --rm -v $PWD:$PWD repronim/reproin`
+   - ReproIn Singularity image: `singularity pull shub://ReproNim/reproin`
 
 2. Collect a subject/session (or multiple of them) while placing and
    naming sequences in the scanner following the [specification].
