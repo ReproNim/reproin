@@ -18,13 +18,12 @@ generate() {
 	#neurodocker generate "$1" \
 	ndversion=0.7.0
 	#ndversion=master
-    # TODO: return freezing at or later of 20201223
-	# --ndfreeze date=20200503 \
 	docker run --rm repronim/neurodocker:$ndversion generate "$1" \
 		--base=neurodebian:buster \
+		--ndfreeze date=20201222T174247Z \
 		--pkg-manager=apt \
 		--install vim wget strace time ncdu gnupg curl procps datalad pigz less tree \
-				  git-annex-standalone python-nibabel \
+				  git-annex-standalone python3-nibabel \
 				  python3-nipype virtualenv shellcheck \
 				  python3-dcmstack python3-funcsigs python3-etelemetry \
 				  python3-pytest dcmtk python3-pip python3-wheel \
