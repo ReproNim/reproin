@@ -10,7 +10,7 @@ generate() {
 		apt_pkgs=python3-pip
 		run_cmd="pip install git+https://github.com/nipy/heudiconv@master"
 	else
-		apt_pkgs="heudiconv=0.8.0-2~nd100+1"
+		apt_pkgs="heudiconv=0.9.0-1~nd100+1"
 		run_cmd=":"
 	fi
 	# more details might come on https://github.com/ReproNim/neurodocker/issues/330
@@ -18,9 +18,10 @@ generate() {
 	#neurodocker generate "$1" \
 	ndversion=0.7.0
 	#ndversion=master
+    # TODO: return freezing at or later of 20201223
+	# --ndfreeze date=20200503 \
 	docker run --rm repronim/neurodocker:$ndversion generate "$1" \
 		--base=neurodebian:buster \
-		--ndfreeze date=20200503 \
 		--pkg-manager=apt \
 		--install vim wget strace time ncdu gnupg curl procps datalad pigz less tree \
 				  git-annex-standalone python-nibabel \
@@ -32,7 +33,7 @@ generate() {
 		--run "$run_cmd" \
 		--run "curl -sL https://deb.nodesource.com/setup_9.x | bash - " \
 		--install nodejs npm \
-		--run "npm install -g bids-validator@1.5.1" \
+		--run "npm install -g bids-validator@1.5.8" \
 		--run "mkdir /afs /inbox" \
 		--user=reproin \
 		--entrypoint "/usr/bin/heudiconv$add_entry"
