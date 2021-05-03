@@ -110,10 +110,10 @@ study-show|study-convert)
 
 	# Check that version of the dcm2niix is the same
 	dcm2niixs_study=( $(git grep -h ConversionSoftwareVersion | awk '{print $2;}' | sed -e 's,[",],,g' | sort | uniq) )
-	if [[ ${#dcm2niixs_study[@]} != 1 ]]; then
-		echo "W: Study already used multiple versions of dcm2niix: ${dcm2niixs_study[@]}"
-	fi
 	if [ -n "${dcm2niixs_study:-}" ]; then
+		if [[ ${#dcm2niixs_study[@]} != 1 ]]; then
+			echo "W: Study already used multiple versions of dcm2niix: ${dcm2niixs_study[@]}"
+		fi
 		dcm2niix_study=${dcm2niixs_study[-1]}
 		if [ ! -z "$dcm2niix_study" ] && [ "$dcm2niix_study" != "$dcm2niix_version" ]; then
 			msg="Wrong environment - dcm2niix $dcm2niix_version when study used $dcm2niix_study"
@@ -136,8 +136,8 @@ study-show|study-convert)
 	fi
 
 	# TODO: use datalad run/containers-run
-	grep -h -B1 "$ostudy'" $listdir/*xx.txt  \
-	| grep 'DICOM.*/\(qa\|A\)' \
+	grep -h -B1 "$ostudy[\"']" $listdir/*xx.txt  \
+	| grep 'DICOM.*/\(qa\|A\|202[0-9]\)' \
 	| sort \
 	| uniq \
 	| while read d; do 
