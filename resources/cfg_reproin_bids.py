@@ -48,8 +48,8 @@ else:
     attrs = ''
 
 for paths, largefile in [
-        (force_in_git, 'nothing'),
         (force_in_annex, 'anything')
+        (force_in_git, 'nothing'),
     ]:
     # amend gitattributes, if needed
     ds.repo.set_gitattributes([
