@@ -39,7 +39,7 @@ if [ "$action" = "lists-update" ]; then
 	# TODO: get Y and M as args
 	Y=${2:-`date +%Y`}; 
 	M=${3:-`date +%m`}; 
-        eval "$heudiconvcmd -f $heuristic --command ls --files $dicomdir/$Y/$M/*/*/001*" >| $listdir/$Y${M}xx.txt
+        eval "$heudiconvcmd -f $heuristic --command ls --files $dicomdir/$Y/$M/*/*/00*scout*" >| $listdir/$Y${M}xx.txt
 	exit 0
 fi
 
@@ -82,6 +82,10 @@ study-create)
 				datalad create --fake-dates -d . "$d"
 			else
 				datalad create -d . "$d"
+			fi
+			if ! grep -q "\.nfs" "$d/.gitignore"; then
+				echo ".nfs*" >> "$d/.gitignore"
+				datalad save -d "$d" -m "ignore .nfs* files" "$d/.gitignore"
 			fi
 		fi
 		cd "$d"
@@ -142,10 +146,10 @@ study-show|study-convert)
 	# TODO: use datalad run/containers-run
 	grep -h -B1 "$ostudy[\"']" $listdir/*xx.txt  \
 	| grep 'DICOM.*/\(qa\|A\|202[0-9]\)' \
+	| sed -e 's,/[^/]*$,,g' \
 	| sort \
 	| uniq \
-	| while read d; do 
-		td=${d//\/001*/};  
+	| while read td; do 
 		# TODO: too ad-hoc, do properly
 		subses=$(grep -h -A1 $td $listdir/*xx.txt | awk '/StudySess/{print $2, $3}' | uniq); 
 		sub=$(echo "$subses" | sed -e "s,.*subject=',,g" -e "s,'),,g")
@@ -162,7 +166,7 @@ study-show|study-convert)
 			subses_ids+=" $subses_id"
 		fi
 		if [ -z "$sub" ]; then
-			echo "ERROR: Empty subject for $d"
+			echo "ERROR: Empty subject for $td"
 			exit 1
 		fi
 		if [ -n "$targetsub" ] && [ "${sub_orig}" != "$targetsub" ]; then
