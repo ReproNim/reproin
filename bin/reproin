@@ -151,7 +151,7 @@ study-show|study-convert)
 	| uniq \
 	| while read td; do 
 		# TODO: too ad-hoc, do properly
-		subses=$(grep -h -A1 $td $listdir/*xx.txt | awk '/StudySess/{print $2, $3}' | uniq); 
+		subses=$(grep -h -A1 $td $listdir/*xx.txt | awk '/StudySess/{print $2, $3}' | uniq | head -n 1);
 		sub=$(echo "$subses" | sed -e "s,.*subject=',,g" -e "s,'),,g")
 		ses=$(echo "$subses" | sed -e "s,.*session='*,,g" -e "s/'*, .*//g" -e "s,None,,g")
 		subses_id="sub=$sub:ses=$ses"
