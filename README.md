@@ -30,6 +30,12 @@ specification on how to organize and name study sequences at MR console.
 Schematic description of the overall setup:
 
 ![Setup](docs/source/images/dbic-flow.png)
+
+**Note:** for your own setup, [dcm2niix](https://github.com/rordenlab/dcm2niix)
+[author](https://github.com/neurolabusc)
+[recommends](https://github.com/neurolabusc/dcm_qa_agfa) to avoid dcm4che and
+choose another PACS.
+
 ![Setup](docs/source/images/dbic-conversions.png)
 
 ## Tutorial/HOWTO
