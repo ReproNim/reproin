@@ -150,6 +150,7 @@ study-show|study-convert)
 	| sort \
 	| uniq \
 	| while read td; do 
+		#echo "TD: <$td>"
 		# TODO: too ad-hoc, do properly
 		subses=$(grep -h -A1 $td $listdir/*xx.txt | awk '/StudySess/{print $2, $3}' | uniq | head -n 1);
 		sub=$(echo "$subses" | sed -e "s,.*subject=',,g" -e "s,'),,g")
@@ -208,7 +209,7 @@ study-show|study-convert)
 			echo "$cmd # $subses"
 			;;
 		study-convert)
-			echo "Converting $subses ($studydir)"
+			echo "Converting $subses ($studydir) [$td]"
 			mkdir -p "$subsesheudiconvdir"
 			logfile="$subsesheudiconvdir/heudiconv.log"
 			if ! eval "$cmd" > "$logfile" 2>&1; then
