@@ -30,6 +30,7 @@ generate() {
 				  python3-setuptools python3-datalad python3-filelock \
 				  dcm2niix python3-pytest python3-nose $apt_pkgs \
 		--run "$run_cmd" \
+		--run "apt-get update && apt-get -y dist-upgrade" \
 		--run "curl -sL https://deb.nodesource.com/setup_12.x | bash - " \
 		--install nodejs npm \
 		--run "npm install -g bids-validator@1.9.3" \
