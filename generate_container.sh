@@ -32,7 +32,7 @@ generate() {
 		--run "$run_cmd" \
 		--run "apt-get update && apt-get -y dist-upgrade" \
 		--run "curl -sL https://deb.nodesource.com/setup_12.x | bash - " \
-		--install nodejs npm \
+		--install nodejs \
 		--run "npm install -g bids-validator@1.9.3" \
 		--run "mkdir /afs /inbox" \
 		--user=reproin \
