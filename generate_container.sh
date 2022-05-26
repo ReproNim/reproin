@@ -28,7 +28,7 @@ generate() {
 				  python3-dcmstack python3-funcsigs python3-etelemetry \
 				  python3-pytest dcmtk python3-pip python3-wheel \
 				  python3-setuptools python3-datalad python3-filelock \
-				  dcm2niix python3-pytest python3-nose $apt_pkgs \
+				  dcm2niix python3-pytest python3-nose python3-venv $apt_pkgs \
 		--run "$run_cmd" \
 		--run "apt-get update && apt-get -y dist-upgrade" \
 		--run "curl -sL https://deb.nodesource.com/setup_12.x | bash - " \
