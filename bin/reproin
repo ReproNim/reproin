@@ -159,16 +159,10 @@ study-show|study-convert)
 		subses=$(grep -h -A1 $td $listdir/*xx.txt | awk '/StudySess/{print $2, $3}' | uniq | head -n 1);
 		sub=$(echo "$subses" | sed -e "s,.*subject=',,g" -e "s,'),,g")
 		ses=$(echo "$subses" | sed -e "s,.*session='*,,g" -e "s/'*, .*//g" -e "s,None,,g")
-		subses_id="sub=$sub:ses=$ses"
 
 		if grep -q -R $td "$skipfile" 2>/dev/null; then
 			echo "$td skip  # $subses"
 			continue
-		fi
-		if [[ " $subses_ids " =~ " ${subses_id} " ]]; then
-			echo "WARNING: $subses_id already known"
-		else
-			subses_ids+=" $subses_id"
 		fi
 		if [ -z "$sub" ]; then
 			echo "ERROR: Empty subject for $td"
@@ -194,23 +188,34 @@ study-show|study-convert)
 		if [ "$sub_orig" != "$sub" ]; then subses+="($sub_orig) "; fi
 		subses+="session=$ses"
 
-		subses_="$sub"  # shortish and only if there ses would have /ses-
+		subses_id="$sub"  # shortish and only if there ses would have /ses-
 		if [ ! -z "$ses" ]; then
-			subses_+=/ses-$ses
+			subses_id+=/ses-$ses
 		fi
-		subsesheudiconvdir=$heudiconvdir/$subses_
-
+		subsesheudiconvdir=$heudiconvdir/$subses_id
+		
 		# Analyze what actually was converted into that sub/ses or where that td went into
-		srcdir=$(infodir_sourcepath "$subses_" 2>/dev/null || :)
+		srcdir=$(infodir_sourcepath "$subses_id" 2>/dev/null || :)
 		if [ -n "$srcdir" ] && [ "$srcdir" != "$td" ]; then
 			alert=" !!! came from $srcdir"
 		else
 			alert=
 		fi
 		td_found_in=$(grep -l -R $td $heudiconvdir/*  2>/dev/null | grep /info/ | sed -e 's,.*\.heudiconv/\(.*\)/info/.*,\1,g' | sort | uniq | tr '\n' ' ' | sed -e 's, *$,,g')
-		if [ -n "$td_found_in" ] && [ "$td_found_in" != "$subses_" ] ; then
+		if [ -n "$td_found_in" ] && [ "$td_found_in" != "$subses_id" ] ; then
 			alert=" !!! was converted into $td_found_in$alert"
+			# those were already converted to other, not what is in DICOM
+			# so we will not memorize what we see in dicom but rather what was
+			# converted into
+			subses_ids+=" $td_found_in "
+		else
+			if [[ " $subses_ids " =~ " ${subses_id} " ]]; then
+				echo "WARNING: $subses_id already known or converted"
+			fi
+			subses_ids+=" $subses_id"
 		fi
+		
+
 
 		# so we have converted something into that subject, might be different data
 		if /bin/ls -d "$subsesheudiconvdir/info" 2>/dev/null | grep -q . ; then
