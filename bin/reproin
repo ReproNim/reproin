@@ -11,6 +11,17 @@ function infodir_sourcepath() {
 	awk -F'"' '/\//{print $2}' .heudiconv/$1/info/filegroup*.json | python3 -c 'import os.path as op, sys; print(op.commonpath(sys.stdin.readlines()))'
 }
 
+# all outputs will be prepended with # so we could just copy/paste it all as a script
+
+function info() {
+	echo "# $@"
+}
+
+function error() {
+	echo "# ERROR: $@"
+}
+
+
 #
 # A Master run script for a study
 #
@@ -139,11 +150,11 @@ study-show|study-convert)
 
 	targetsub="${3:-}"
 	if [ -e "$heudiconvdir/heuristic.py" ]; then
-		echo "Will use study specific heuristic"
+		info "Will use study specific heuristic"
 		heuristic=".heudiconv/heuristic.py"
 	fi
 	if [ -e "$heudiconvdir/anon-cmd" ]; then
-		echo "Will use study specific anon-cmd"
+		info "Will use study specific anon-cmd"
 		heudiconvcmd="$heudiconvcmd --anon-cmd '$heudiconvdir/anon-cmd'"
 	fi
 
@@ -154,22 +165,22 @@ study-show|study-convert)
 	| sort \
 	| uniq \
 	| while read td; do 
-		#echo "TD: <$td>"
+		#debug "TD: <$td>"
 		# TODO: too ad-hoc, do properly
 		subses=$(grep -h -A1 $td $listdir/*xx.txt | awk '/StudySess/{print $2, $3}' | uniq | head -n 1);
 		sub=$(echo "$subses" | sed -e "s,.*subject=',,g" -e "s,'),,g")
 		ses=$(echo "$subses" | sed -e "s,.*session='*,,g" -e "s/'*, .*//g" -e "s,None,,g")
 
 		if grep -q -R $td "$skipfile" 2>/dev/null; then
-			echo "$td skip  # $subses"
+			info "$td skip  # $subses"
 			continue
 		fi
 		if [ -z "$sub" ]; then
-			echo "ERROR: Empty subject for $td"
+			error "Empty subject for $td"
 			exit 1
 		fi
 		if [ -n "$targetsub" ] && [ "${sub_orig}" != "$targetsub" ]; then
-			echo "Skipping $subses since ${sub_orig} != $targetsub"
+			info "Skipping $subses since ${sub_orig} != $targetsub"
 			continue
 		fi
 
@@ -178,7 +189,7 @@ study-show|study-convert)
 		if [ -e "$heudiconvdir/anon-cmd" ]; then
 			sub_=$("$heudiconvdir/anon-cmd" "$sub" || echo "FAILED")
 			if [ $sub_ = "FAILED" ]; then
-				echo "ERROR: failed to get anonymized ID for $sub, skipping"
+				error "failed to get anonymized ID for $sub, skipping"
 				continue
 			fi
 			sub="$sub_"
@@ -210,7 +221,7 @@ study-show|study-convert)
 			subses_ids+=" $td_found_in "
 		else
 			if [[ " $subses_ids " =~ " ${subses_id} " ]]; then
-				echo "WARNING: $subses_id already known or converted"
+				info "WARNING: $subses_id already known or converted"
 			fi
 			subses_ids+=" $subses_id"
 		fi
@@ -219,12 +230,12 @@ study-show|study-convert)
 
 		# so we have converted something into that subject, might be different data
 		if /bin/ls -d "$subsesheudiconvdir/info" 2>/dev/null | grep -q . ; then
-			echo "$td done  # $subses  since $subsesheudiconvdir/info exists.$alert"
+			info "$td done  $subses $alert"
 			continue
 		fi
 		# we converted but into another subses?
 		if [ -n "$td_found_in" ]; then
-			echo "$td done  # $subses $alert"
+			info "$td done  $subses $alert"
 			continue
 		fi
 		
@@ -234,17 +245,17 @@ study-show|study-convert)
 			echo "$cmd # $subses"
 			;;
 		study-convert)
-			echo "Converting $subses ($studydir) [$td]"
+			info "Converting $subses ($studydir) [$td]"
 			mkdir -p "$subsesheudiconvdir"
 			logfile="$subsesheudiconvdir/heudiconv.log"
 			if ! eval "$cmd" > "$logfile" 2>&1; then
-				echo "E: conversion script exited with $?. Please check details in $studydir/$logfile."
+				error "conversion script exited with $?. Please check details in $studydir/$logfile."
 			        echo "   The tail of it is:"
 				tail "$logfile"
 				exit 1
 			fi
 
-			echo "Runing validator now"
+			info "Runing validator now"
 			"$self" "validator-save" "$study" || "echo validator failed; check $vallog"
 			if [ -e "$vallog" ]; then
                            cp --reflink=auto "$vallog" "$subsesheudiconvdir/bids-validator.log"
@@ -264,18 +275,18 @@ validator)
 validator-save)
 	rm -f "$vallog"
 	"$self" "validator" "$study" > "$vallog"
-	echo "Validator output in $PWD/$vallog"
+	info "Validator output in $PWD/$vallog"
 	datalad save -d . -m "New BIDS validator output" $vallog
 	;;
 validator-summary)
-	echo "Errors/warnings from current state of the validator:"
+	info "Errors/warnings from current state of the validator:"
 	grep -E '^\s*[0-9]+: \[' "$vallog"
 	;;
 validator-show)
 	${PAGER:-vim} $vallog
 	;;
 *)
-	echo "Unknown action $action" >&2
+	info "Unknown action $action" >&2
 	exit 1
 	;;
 esac
