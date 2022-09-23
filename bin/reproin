@@ -50,7 +50,8 @@ self=$(realpath "$0")
 action="$1"
 
 # early
-if [ "$action" = "lists-update" ]; then
+case "$action" in
+lists-update)
 	# TODO: get Y and M as args
 	Y=${2:-`date +%Y`}; 
 	M=${3:-`date +%m`}; 
@@ -60,7 +61,55 @@ if [ "$action" = "lists-update" ]; then
 	echo "INFO: updating $listfile" >&2
         eval "$heudiconvcmd -f $heuristic --command ls --files $dicomdir/$Y/$M/$D/*/00*scout*" >| "$listfile"
 	exit 0
-fi
+	;;
+lists-update-summary)
+	# to be used on the stderr output from heudiconv --command ls or lists-update ran by cron job
+	sed -ne "/StudySes/s,.*locator='\([^']*\)'.*,\1,gp" | sort | uniq -c | sort -nr
+	exit 0
+	;;
+lists-update-study-shows)
+	# to be used on the stderr output from heudiconv --command ls or lists-update ran by cron job
+	# will also produce study-show on those studies
+	$0 lists-update 2>&1 \
+	| $0 lists-update-summary \
+	| while read n study; do
+		echo -n "$study: new=$n "
+		$0 study-show-save $study
+	done
+	exit 0
+	;;
+study-show-save)
+	# to be used on the output from heudiconv --command ls ran by cron job
+	study="$2"
+	studydir="$bidsdir/$study"
+	if [ ! -e "$studydir/.git" ]; then
+		echo "no studydir yet"
+		continue
+	fi
+	studyshow="$studydir/.git/study-show.sh"
+	$0 study-show "$study" >| "$studyshow"
+	$0 study-show-summary "$study"
+	exit 0
+	;;
+study-show-summary)
+	# to be used in conjuction with lists-update-summary-shows or just by itself
+	studyshow="$bidsdir/$2/.git/study-show.sh"
+	todo=$(grep '^heudiconv ' "$studyshow" | wc -l)
+	warnings=$(grep 'WARNING: ' "$studyshow" | wc -l)
+	fixups=$(grep '!!!' "$studyshow" | wc -l)
+	don=$(grep '#.* done ' "$studyshow" | wc -l)
+	echo -n "todo=$todo done=$don"
+	if [ $fixups -gt 0 ]; then
+		echo -n " fixups=$fixups"
+	fi
+	if [ $warnings -gt 0 ]; then
+		echo -n " warnings=$warnings"
+	fi
+	date_modified=$(stat "$studyshow" | awk '/^Modify/{print $2;}')
+	echo " $studyshow $date_modified"
+	exit 0
+	;;
+esac
 
 # The rest of the commands operate on a given study
 study=${2#*:}
