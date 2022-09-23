@@ -54,7 +54,11 @@ if [ "$action" = "lists-update" ]; then
 	# TODO: get Y and M as args
 	Y=${2:-`date +%Y`}; 
 	M=${3:-`date +%m`}; 
-        eval "$heudiconvcmd -f $heuristic --command ls --files $dicomdir/$Y/$M/*/*/00*scout*" >| $listdir/$Y${M}xx.txt
+	D=${4:-*};
+	[ "$D" = "*" ] && DD=xx || DD=$D
+	listfile="$listdir/$Y${M}${DD}.txt"
+	echo "INFO: updating $listfile" >&2
+        eval "$heudiconvcmd -f $heuristic --command ls --files $dicomdir/$Y/$M/$D/*/00*scout*" >| "$listfile"
 	exit 0
 fi
 
