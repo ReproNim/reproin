@@ -10,7 +10,7 @@ generate() {
 		apt_pkgs=python3-pip
 		run_cmd="pip install git+https://github.com/nipy/heudiconv@master"
 	else
-		apt_pkgs="heudiconv=0.11.3-1~nd110+1"
+		apt_pkgs="heudiconv=0.11.6-1~nd110+1"
 		run_cmd=":"
 	fi
 	# more details might come on https://github.com/ReproNim/neurodocker/issues/330
@@ -20,7 +20,7 @@ generate() {
 	#ndversion=master
 	docker run --rm repronim/neurodocker:$ndversion generate "$1" \
 		--base=neurodebian:bullseye \
-		--ndfreeze date=20220513T050503Z \
+		--ndfreeze date=20221122T060506Z \
 		--pkg-manager=apt \
 		--install vim wget strace time ncdu gnupg curl procps datalad pigz less tree \
 				  git-annex-standalone python3-nibabel \
@@ -33,7 +33,7 @@ generate() {
 		--run "apt-get update && apt-get -y dist-upgrade" \
 		--run "curl -sL https://deb.nodesource.com/setup_12.x | bash - " \
 		--install nodejs \
-		--run "npm install -g bids-validator@1.9.3" \
+		--run "npm install -g bids-validator@1.9.9" \
 		--run "mkdir /afs /inbox" \
 		--user=reproin \
 		--entrypoint "/usr/bin/heudiconv$add_entry"
