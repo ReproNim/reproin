@@ -7,6 +7,10 @@
 #
 set -eu
 
+function infodir_sourcepath() {
+	awk -F'"' '/\//{print $2}' .heudiconv/$1/info/filegroup*.json | python3 -c 'import os.path as op, sys; print(op.commonpath(sys.stdin.readlines()))'
+}
+
 #
 # A Master run script for a study
 #
@@ -150,6 +154,7 @@ study-show|study-convert)
 	| sort \
 	| uniq \
 	| while read td; do 
+		#echo "TD: <$td>"
 		# TODO: too ad-hoc, do properly
 		subses=$(grep -h -A1 $td $listdir/*xx.txt | awk '/StudySess/{print $2, $3}' | uniq | head -n 1);
 		sub=$(echo "$subses" | sed -e "s,.*subject=',,g" -e "s,'),,g")
@@ -189,16 +194,32 @@ study-show|study-convert)
 		if [ "$sub_orig" != "$sub" ]; then subses+="($sub_orig) "; fi
 		subses+="session=$ses"
 
-		subsesheudiconvdir=$heudiconvdir/$sub
+		subses_="$sub"  # shortish and only if there ses would have /ses-
 		if [ ! -z "$ses" ]; then
-			subsesheudiconvdir+=/ses-$ses
+			subses_+=/ses-$ses
 		fi
-		if /bin/ls "$subsesheudiconvdir/" 2>/dev/null | grep -q . ; then
-			echo "$td done  # $subses  since $subsesheudiconvdir exists"
+		subsesheudiconvdir=$heudiconvdir/$subses_
+
+		# Analyze what actually was converted into that sub/ses or where that td went into
+		srcdir=$(infodir_sourcepath "$subses_" 2>/dev/null || :)
+		if [ -n "$srcdir" ] && [ "$srcdir" != "$td" ]; then
+			alert=" !!! came from $srcdir"
+		else
+			alert=
+		fi
+		td_found_in=$(grep -l -R $td $heudiconvdir/*  2>/dev/null | grep /info/ | sed -e 's,.*\.heudiconv/\(.*\)/info/.*,\1,g' | sort | uniq | tr '\n' ' ' | sed -e 's, *$,,g')
+		if [ -n "$td_found_in" ] && [ "$td_found_in" != "$subses_" ] ; then
+			alert=" !!! was converted into $td_found_in$alert"
+		fi
+
+		# so we have converted something into that subject, might be different data
+		if /bin/ls -d "$subsesheudiconvdir/info" 2>/dev/null | grep -q . ; then
+			echo "$td done  # $subses  since $subsesheudiconvdir/info exists.$alert"
 			continue
 		fi
-		if grep -q -R $td $heudiconvdir/* 2>/dev/null; then
-			echo "$td done  # $subses"
+		# we converted but into another subses?
+		if [ -n "$td_found_in" ]; then
+			echo "$td done  # $subses $alert"
 			continue
 		fi
 		
@@ -208,7 +229,7 @@ study-show|study-convert)
 			echo "$cmd # $subses"
 			;;
 		study-convert)
-			echo "Converting $subses ($studydir)"
+			echo "Converting $subses ($studydir) [$td]"
 			mkdir -p "$subsesheudiconvdir"
 			logfile="$subsesheudiconvdir/heudiconv.log"
 			if ! eval "$cmd" > "$logfile" 2>&1; then
