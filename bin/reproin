@@ -84,20 +84,21 @@ study-show-save)
 	studydir="$bidsdir/$study"
 	if [ ! -e "$studydir/.git" ]; then
 		echo "no studydir yet"
-		continue
+	else
+		studyshow="$studydir/.git/study-show"
+		$0 study-show "$study" >| "$studyshow.sh" 2>| "$studyshow.stderr"
+		[ -s "$studyshow.stderr" ] || rm -f "$studyshow.stderr"
+		$0 study-show-summary "$study"
 	fi
-	studyshow="$studydir/.git/study-show.sh"
-	$0 study-show "$study" >| "$studyshow"
-	$0 study-show-summary "$study"
 	exit 0
 	;;
 study-show-summary)
 	# to be used in conjuction with lists-update-summary-shows or just by itself
-	studyshow="$bidsdir/$2/.git/study-show.sh"
-	todo=$(grep '^heudiconv ' "$studyshow" | wc -l)
-	warnings=$(grep 'WARNING: ' "$studyshow" | wc -l)
-	fixups=$(grep '!!!' "$studyshow" | wc -l)
-	don=$(grep '#.* done ' "$studyshow" | wc -l)
+	studyshow="$bidsdir/$2/.git/study-show"
+	todo=$(grep '^heudiconv ' "$studyshow.sh" | wc -l)
+	warnings=$(grep 'WARNING: ' "$studyshow.sh" | wc -l)
+	fixups=$(grep '!!!' "$studyshow.sh" | wc -l)
+	don=$(grep '#.* done ' "$studyshow.sh" | wc -l)
 	echo -n "todo=$todo done=$don"
 	if [ $fixups -gt 0 ]; then
 		echo -n " fixups=$fixups"
@@ -105,8 +106,11 @@ study-show-summary)
 	if [ $warnings -gt 0 ]; then
 		echo -n " warnings=$warnings"
 	fi
-	date_modified=$(stat "$studyshow" | awk '/^Modify/{print $2;}')
-	echo " $studyshow $date_modified"
+	if [ -s "$studyshow.stderr" ]; then
+		echo -n " stderrs=$(wc -l $studyshow.stderr)"
+	fi
+	date_modified=$(stat "$studyshow.sh" | awk '/^Modify/{print $2;}')
+	echo " $studyshow.sh $date_modified"
 	exit 0
 	;;
 esac
