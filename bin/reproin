@@ -255,6 +255,12 @@ study-show|study-convert)
 		subses="$sub "
 		if [ "$sub_orig" != "$sub" ]; then subses+="($sub_orig) "; fi
 		subses+="session=$ses"
+		
+		# make one which uses CLI options so could be just uncommented to be used
+		subses_opts="-s '$sub'"
+		if [ -n "$ses" ]; then
+			subses_opts+=" --ses '$ses'"
+		fi
 
 		subses_id="$sub"  # shortish and only if there ses would have /ses-
 		if [ ! -z "$ses" ]; then
@@ -299,7 +305,7 @@ study-show|study-convert)
 		cmd="$heudiconvcmd -f $heuristic -l $study --files $td"
 		case "$action" in
 		study-show)
-			echo "$cmd # $subses"
+			echo "$cmd # $subses_opts"
 			;;
 		study-convert)
 			info "Converting $subses ($studydir) [$td]"
