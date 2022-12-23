@@ -39,13 +39,8 @@ generate() {
 		--entrypoint "/usr/bin/heudiconv$add_entry"
 }
 
-version=$(git describe)
-
 generate docker > Dockerfile
 generate singularity > Singularity
-
-# Make versioned copy for Singularity Hub
-cp Singularity Singularity.${version}
 
 if [ "$dev_build" != "1" ] && echo $version | grep -e '-g'; then
 	echo "ERROR: Evil Yarik disabled updates of the containers without releases"
