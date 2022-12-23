@@ -50,6 +50,11 @@ else:
 for paths, largefile in [
         (force_in_git, 'nothing'),
         (force_in_annex, 'anything'),
+        # not sufficient since order matters (last match wins) and 
+        # heudiconv ATM also would add a line
+        # for * and base on the size and also the one for _scans.tsv
+        # so we end up with _scans.tsv, small they are, being added
+        # to git.... TODO: fix in heudiconv
     ]:
     # amend gitattributes, if needed
     ds.repo.set_gitattributes([
