@@ -20,7 +20,7 @@ generate() {
 	#ndversion=master
 	docker run --rm repronim/neurodocker:$ndversion generate "$1" \
 		--base=neurodebian:bullseye \
-		--ndfreeze date=20221122T060506Z \
+		--ndfreeze date=20221224 \
 		--pkg-manager=apt \
 		--install vim wget strace time ncdu gnupg curl procps datalad pigz less tree \
 				  git-annex-standalone python3-nibabel \
@@ -41,10 +41,3 @@ generate() {
 
 generate docker > Dockerfile
 generate singularity > Singularity
-
-if [ "$dev_build" != "1" ] && echo $version | grep -e '-g'; then
-	echo "ERROR: Evil Yarik disabled updates of the containers without releases"
-	echo "		 So this command will 'fail', and if output is alright, reset, tag "
-	echo "		 (should match frozen version of heudiconv) and redo"
-	exit 1
-fi
