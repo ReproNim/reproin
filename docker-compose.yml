@@ -1,0 +1,17 @@
+version: '3'
+services:
+  dcm-receiver:
+    build: ./dcmrecv
+    ports:
+      - "${PORT}:${PORT}"
+    volumes:
+      - ${DICOMDIR}:/dicoms
+    command: storescp -v -sp --output-directory /dicoms ${PORT}
+
+  heudiconv:
+    build: ./heudicron
+    volumes:
+      - ${DICOMDIR}:/dicoms:ro
+      - ${HEUDICONV_OUTDIR}:/output
+    depends_on:
+      - dcm-receiver

@@ -130,6 +130,23 @@ tools, any environment providing them would suffice, such as
 other Debian-based systems with NeuroDebian repositories configured,
 which would provide all necessary for ReproIn setup components.
 
+
+## `docker-compose` + usage
+
+This repository provides a `docker-compose` file that includes (2) services:
+- DICOM receiver ([dcmtk](https://dicom.offis.de/dcmtk) `storescp`)
+  listening and ready to receive through a port.
+- `reproin` (`heudiconv`) converter set to process all folders in the DICOM
+  directory through a cron job (default is set to everyday at 4am).
+
+Refer to the `.env` file - many options above are configurable within it.
+
+To spin up the reproin service, run `docker-compose up` in the project root -
+ this will route all logs to the console. If you wish to run it in the service
+ in the background, append the `--detach` flag, and use `docker-compose logs`
+ to monitor. Since this is a new feature, it may not behave as intended. If you
+ encounter any errors, please open an issue and let us know.
+
 ## TODOs/WiP/Related
 
 - [ ] add a pre-configured DICOM receiver for fully turnkey deployments
