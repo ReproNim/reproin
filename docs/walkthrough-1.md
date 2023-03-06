@@ -142,14 +142,14 @@ appears nowhere within DICOM precluding its utility for automation
 As you can see in the following example, we have interrupted
 `func_task-task1_run-01` functional scan, may be because our phantom
 fell asleep.  Our scanner console is configured to transmit data
-immediately upon succesful volume was collected, so those volumes were
+immediately upon successful volume was collected, so those volumes were
 already transmitted to PACS:
 
 ![wt1-e.1-scan-interrupt-func.png](source/images/walkthrough-1/wt1-e.1-scan-interrupt-func.png)
 
 To make `heudiconv` `reproin` heuristic figure out that the run was
 canceled or otherwise needs to be discarded, just `Repeat` the run
-**without changing anyting in its name!**:
+**without changing anything in its name!**:
 
 ![wt1-e.1-scan-interrupt-repeat.png](source/images/walkthrough-1/wt1-e.1-scan-interrupt-repeat.png)
 

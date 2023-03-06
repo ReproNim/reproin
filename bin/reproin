@@ -93,7 +93,7 @@ study-show-save)
 	exit 0
 	;;
 study-show-summary)
-	# to be used in conjuction with lists-update-summary-shows or just by itself
+	# to be used in conjunction with lists-update-summary-shows or just by itself
 	studyshow="$bidsdir/$2/.git/study-show"
 	todo=$(grep '^heudiconv ' "$studyshow.sh" | wc -l)
 	warnings=$(grep 'WARNING: ' "$studyshow.sh" | wc -l)
@@ -312,7 +312,7 @@ study-show|study-convert)
 				exit 1
 			fi
 
-			info "Runing validator now"
+			info "Running validator now"
 			"$self" "validator-save" "$study" || "echo validator failed; check $vallog"
 			if [ -e "$vallog" ]; then
                            cp --reflink=auto "$vallog" "$subsesheudiconvdir/bids-validator.log"
