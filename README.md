@@ -126,9 +126,17 @@ This repository provides a [Singularity](./Singularity) environment
 definition file used to generate a complete environment needed to run
 a conversion.  But also, since all work is integrated within the
 tools, any environment providing them would suffice, such as
-[NeuroDebian] docker and Singularity images, virtual appliances, and
+[NeuroDebian](https://neuro.debian.net) docker or Singularity images, virtual appliances, and
 other Debian-based systems with NeuroDebian repositories configured,
 which would provide all necessary for ReproIn setup components.
+
+## Gotchas
+
+### XNAT
+
+Anonymization or other scripts might obfuscate "Study Description" thus ruining
+"locator" assignment.  See 
+[issue #57](https://github.com/ReproNim/reproin/issues/57) for more information.
 
 ## TODOs/WiP/Related
 
