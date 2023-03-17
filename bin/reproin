@@ -173,6 +173,19 @@ study-create)
 	# after creating a dataset tag it with 0.0.0
 	# This would allow for a sensible git describe output
 	;;
+study-remove-subject)
+	# TODO: provision for possibly having a specific session not entire subject
+	git rm -r sub-$sid sourcedata/sub-$sid .heudiconv/$sid
+	echo "not implemented"
+	exit 1
+	;;
+study-remove-subject2redo)
+	echo "not implemented"
+	exit 1
+	# figure out where came from
+	$0 study-remove-subject
+	# add original location to skip file
+	;;
 study-accession-skip)
 	if [ -L "$skipfile" ]; then
 		(
