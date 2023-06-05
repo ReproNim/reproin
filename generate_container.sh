@@ -36,8 +36,10 @@ generate() {
 		--run "npm install -g bids-validator@1.11.0" \
 		--run "pip install cubids==1.0.8 pynidm==4.0.0" \
 		--run "mkdir /afs /inbox" \
+		--copy bin/reproin /usr/local/bin/reproin \
+		--run "chmod a+rx /usr/local/bin/reproin" \
 		--user=reproin \
-		--entrypoint "/usr/bin/heudiconv$add_entry"
+		--entrypoint "/usr/local/bin/reproin$add_entry"
 }
 
 generate docker > Dockerfile
