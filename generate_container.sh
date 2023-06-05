@@ -32,7 +32,7 @@ generate() {
 		--run "$run_cmd" \
 		--run "apt-get update && apt-get -y dist-upgrade" \
 		--run "curl -sL https://deb.nodesource.com/setup_16.x | bash - " \
-		--install nodejs \
+		--install nodejs npm \
 		--run "npm install -g bids-validator@1.11.0" \
 		--run "pip install cubids==1.0.8 pynidm==4.0.0" \
 		--run "mkdir /afs /inbox" \
