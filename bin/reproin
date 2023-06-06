@@ -43,7 +43,7 @@ heudiconvdir=".heudiconv"
 skipfile=".heudiconv/sid-skip" # TODO: check what used now
 vallog=".heudiconv/bids-validator.log"
 valconfig=".bids-validator-config.json"
-# common prefix for heudiconv invocation
+# common prefix for heudiconv invocation (reconversion might differ)
 heudiconvcmd="heudiconv -c dcm2niix --bids -o $bidsdir -g accession_number"
 
 self=$(realpath "$0")
@@ -80,6 +80,40 @@ lists-update-study-shows)
 	| while read n study; do
 		echo -n "$study: new=$n "
 		$0 study-show-save $study
+	done
+	exit 0
+	;;
+reconvert-sourcedata)
+	# TODO: add option to reconvert from the original location as extracting from available files
+	shift;
+	if [ ! -e dataset_description.json ]; then
+		error "Run from the top directory of BIDS dataset"
+		exit 1
+	fi
+	# Sanity check - ensure that all specified folders have *_scans.tsv
+	for f in "$@"; do
+		if ! /bin/ls "$f"/*_scans.tsv >& /dev/null; then
+			error "$f lacks a _scans.tsv file. Make sure to point to sub-[/ses-] folders"
+			exit 1;
+		fi
+		if [ ! -e sourcedata/$f ]; then
+			error "$f lacks entry under sourcedata/"
+			exit 1;
+		fi
+	done
+	info "Will reconvert $# subject session folders"
+	for f in "$@"; do
+		case ${f} in
+			sub-*) sub=${f%/*}; sub=${sub#sub-};;
+			*) error "Folder is not sub-"; exit 1;
+		esac
+		opts=( -s "$sub" )
+		ses=${f#*/}
+		case $ses in
+			ses-*) opts=( ${opts[@]} -ss ${ses#ses-} );;
+		esac
+		datalad run -m "Reconvert $f" --input sourcedata/$f bash -c \
+			"rm -rf $f && mv 'sourcedata/$f' 'sourcedata/$f.src' && heudiconv -c dcm2niix --bids -o . -l . -g accession_number ${opts[@]} --files 'sourcedata/$f.src' && rm -rf 'sourcedata/$f.src'"
 	done
 	exit 0
 	;;
