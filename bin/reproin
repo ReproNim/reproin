@@ -107,6 +107,12 @@ reconvert-sourcedata)
 			exit 1;
 		fi
 	done
+	# TODO: deduplicate
+	if [ -e ".heudiconv/heuristic.py" ]; then
+		info "Will use study specific heuristic"
+		heuristic=".heudiconv/heuristic.py"
+	fi
+
 	info "Will reconvert $# subject session folders"
 	for f in "${paths[@]}"; do
 		case ${f} in
@@ -118,8 +124,8 @@ reconvert-sourcedata)
 		case $ses in
 			ses-*) opts=( ${opts[@]} -ss ${ses#ses-} );;
 		esac
-		echo datalad run -m "Reconvert $f" --input sourcedata/$f bash -c \
-			"rm -rf $f && mv 'sourcedata/$f' 'sourcedata/$f.src' && heudiconv -c dcm2niix --bids -o . -l . -g accession_number ${opts[@]} --files 'sourcedata/$f.src' && rm -rf 'sourcedata/$f.src'"
+		datalad run -m "Reconvert $f" --input sourcedata/$f bash -c \
+			"rm -rf $f && mv 'sourcedata/$f' 'sourcedata/$f.src' && heudiconv -f $heuristic -c dcm2niix --bids -o . -l . -g accession_number ${opts[@]} --files 'sourcedata/$f.src -g all' && rm -rf 'sourcedata/$f.src'"
 	done
 	exit 0
 	;;
