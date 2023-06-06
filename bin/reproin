@@ -90,8 +90,14 @@ reconvert-sourcedata)
 		error "Run from the top directory of BIDS dataset"
 		exit 1
 	fi
-	# Sanity check - ensure that all specified folders have *_scans.tsv
+	# Could be pointed to source data - we need to strip it for further analyses,
+	# and we will re-preprefix with sourcedata/
+	paths=( )
 	for f in "$@"; do
+		paths=( ${paths[@]} "${f#sourcedata/}" )
+	done
+	# Sanity check - ensure that all specified folders have *_scans.tsv
+	for f in "${paths[@]}"; do
 		if ! /bin/ls "$f"/*_scans.tsv >& /dev/null; then
 			error "$f lacks a _scans.tsv file. Make sure to point to sub-[/ses-] folders"
 			exit 1;
@@ -102,7 +108,7 @@ reconvert-sourcedata)
 		fi
 	done
 	info "Will reconvert $# subject session folders"
-	for f in "$@"; do
+	for f in "${paths[@]}"; do
 		case ${f} in
 			sub-*) sub=${f%/*}; sub=${sub#sub-};;
 			*) error "Folder is not sub-"; exit 1;
@@ -112,7 +118,7 @@ reconvert-sourcedata)
 		case $ses in
 			ses-*) opts=( ${opts[@]} -ss ${ses#ses-} );;
 		esac
-		datalad run -m "Reconvert $f" --input sourcedata/$f bash -c \
+		echo datalad run -m "Reconvert $f" --input sourcedata/$f bash -c \
 			"rm -rf $f && mv 'sourcedata/$f' 'sourcedata/$f.src' && heudiconv -c dcm2niix --bids -o . -l . -g accession_number ${opts[@]} --files 'sourcedata/$f.src' && rm -rf 'sourcedata/$f.src'"
 	done
 	exit 0
