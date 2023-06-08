@@ -120,18 +120,23 @@ reconvert-sourcedata)
 			*) error "Folder is not sub-"; exit 1;
 		esac
 		opts=( -s "$sub" )
-		remove_heudiconv=".heudiconv/$sub"
+		heudiconv_f=".heudiconv/$sub"
 		ses=${f#*/}
 		case $ses in
 			ses-*) opts=( ${opts[@]} -ss ${ses#ses-} );
-				   remove_heudiconv+="/$ses";;
+				   heudiconv_f+="/$ses";;
 		esac
+        rm_f=( $(/bin/ls -1d $f/* | grep -v physio) )  # we might have some physio data which we do not convert
+        # and need to move physio back from moved aside .src before removing
+        #
 		# keep invocation across lines for readability and at the beginning of the line to avoid
 		# all the \t etc.  Trailing slashes ensure absence of not needed \n in the command record.
 		datalad run -m "Reconvert $f" --input sourcedata/$f bash -x -c \
-"rm -rf $f $remove_heudiconv && \
+"rm -rf ${rm_f[*]} $heudiconv_f && \
+ mkdir -p "$heudiconv_f" && \
  mv sourcedata/$f sourcedata/$f.src && \
- heudiconv -f $heuristic -c dcm2niix --bids -o . -l . ${opts[*]} --files sourcedata/$f.src -g all && \
+ heudiconv -f $heuristic -c dcm2niix --bids -o . -l . ${opts[*]} --files sourcedata/$f.src -g all >& $heudiconv_f/heudiconv.log && \
+ [ -e sourcedata/$f.src/physio ] && mv sourcedata/$f.src/physio sourcedata/$f/ && \
  rm -rf sourcedata/$f.src"
 	done
 	exit 0
