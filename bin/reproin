@@ -136,7 +136,7 @@ reconvert-sourcedata)
  mkdir -p "$heudiconv_f" && \
  mv sourcedata/$f sourcedata/$f.src && \
  heudiconv -f $heuristic -c dcm2niix --bids -o . -l . ${opts[*]} --files sourcedata/$f.src -g all >& $heudiconv_f/heudiconv.log && \
- [ -e sourcedata/$f.src/physio ] && mv sourcedata/$f.src/physio sourcedata/$f/ && \
+ if [ -e sourcedata/$f.src/physio ] ; then mv sourcedata/$f.src/physio sourcedata/$f/; fi && \
  rm -rf sourcedata/$f.src"
 	done
 	exit 0
