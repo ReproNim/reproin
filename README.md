@@ -132,6 +132,66 @@ which would provide all necessary for ReproIn setup components.
 
 ## Gotchas
 
+
+## Complete setup at DBIC
+
+It relies on the hardcoded ATM in `reproin` locations and organization
+of DICOMs and location of where to keep converted BIDS datasets.
+
+- `/inbox/DICOM/{YEAR}/{MONTH}/{DAY}/A00{ACCESSION`
+- `/inbox/BIDS/{PI}/{RESEARCHER}/{ID}_{name}/`
+
+### Cron job
+
+```
+# m h  dom mon dow   command
+55 */12 * * * $HOME/reproin-env-0.9.0 -c '~/proj/reproin/bin/reproin lists-update-study-shows' && curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/61dfdedd-SENSORED
+```
+
+NB: that `curl` at the end is to make use of https://healthchecks.io
+to ensure that we do have CRON job ran as we expected.
+
+ATM we reuse a singularity environment based on reproin 0.9.0 produced from this repo and shipped within ReproNim/containers. For the completeness sake
+
+```shell
+(reproin-3.8) [bids@rolando lists] > cat $HOME/reproin-env-0.9.0
+#!/bin/sh
+
+env -i /usr/local/bin/singularity exec -B /inbox -B /afs -H $HOME/singularity_home $(dirname $0)/reproin_0.9.0.simg /bin/bash "$@"
+```
+
+which produces emails with content like
+
+```
+Wager/Wager/1102_MedMap: new=92 todo=5 done=102 /inbox/BIDS/Wager/Wager/1102_MedMap/.git/study-show.sh 2023-03-30
+PI/Researcher/ID_name: new=32 no studydir yet
+Haxby/Jane/1073_MonkeyKingdom: new=4 todo=39 done=8  fixups=6 /inbox/BIDS/Haxby/Jane/1073_MonkeyKingdom/.git/study-show.sh 2023-03-30
+```
+
+where as you can see it updates on the status for each study which was scanned for from the
+beginning of the current month. And it ends with the pointer to `study-show.sh` script which
+would provide details on already converted or heudiconv line invocations for what yet to do.
+
+### reproin study-create
+
+For the "no studydir yet" we need first to generate study dataset (and
+possibly all leading `PI/Researcher` super-datasets via 
+
+```shell
+reproin study-create PI/Researcher/ID_name
+```
+
+### reproin study-convert
+
+Unless there are some warnings/conflicts (subject/session already
+converted, etc) are found,
+
+```shell
+reproin study-convert PI/Researcher/ID_name
+```
+
+could be used to convert all new subject/sessions for that study.
+
 ### XNAT
 
 Anonymization or other scripts might obfuscate "Study Description" thus ruining

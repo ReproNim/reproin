@@ -43,7 +43,7 @@ heudiconvdir=".heudiconv"
 skipfile=".heudiconv/sid-skip" # TODO: check what used now
 vallog=".heudiconv/bids-validator.log"
 valconfig=".bids-validator-config.json"
-# common prefix for heudiconv invocation
+# common prefix for heudiconv invocation (reconversion might differ)
 heudiconvcmd="heudiconv -c dcm2niix --bids -o $bidsdir -g accession_number"
 
 self=$(realpath "$0")
@@ -60,7 +60,7 @@ lists-update)
 	listfile="$listdir/$Y${M}${DD}.txt"
 	echo "INFO: updating $listfile" >&2
 	# TODO: make more robust here. Go through each accession folder,
-	# and ensure we have permisssion (now we seems just skip), then do not
+	# and ensure we have permission (now we seems just skip), then do not
 	# rely on seeing "scout" (already had to relax to "cout"). Ideally should be a sample
 	# of few DICOMs, e.g. first/last ones among subfolders to possibly catch different
 	# studies dumped into the same folder.  Complain then!
@@ -80,6 +80,64 @@ lists-update-study-shows)
 	| while read n study; do
 		echo -n "$study: new=$n "
 		$0 study-show-save $study
+	done
+	exit 0
+	;;
+reconvert-sourcedata)
+	# TODO: add option to reconvert from the original location as extracting from available files
+	shift;
+	if [ ! -e dataset_description.json ]; then
+		error "Run from the top directory of BIDS dataset"
+		exit 1
+	fi
+	# Could be pointed to source data - we need to strip it for further analyses,
+	# and we will re-preprefix with sourcedata/
+	paths=( )
+	for f in "$@"; do
+		paths=( ${paths[@]} "${f#sourcedata/}" )
+	done
+	# Sanity check - ensure that all specified folders have *_scans.tsv
+	for f in "${paths[@]}"; do
+		if ! /bin/ls "$f"/*_scans.tsv >& /dev/null; then
+			error "$f lacks a _scans.tsv file. Make sure to point to sub-[/ses-] folders"
+			exit 1;
+		fi
+		if [ ! -e sourcedata/$f ]; then
+			error "$f lacks entry under sourcedata/"
+			exit 1;
+		fi
+	done
+	# TODO: deduplicate
+	if [ -e ".heudiconv/heuristic.py" ]; then
+		info "Will use study specific heuristic"
+		heuristic=".heudiconv/heuristic.py"
+	fi
+
+	info "Will reconvert $# subject session folders"
+	for f in "${paths[@]}"; do
+		case ${f} in
+			sub-*) sub=${f%/*}; sub=${sub#sub-};;
+			*) error "Folder is not sub-"; exit 1;
+		esac
+		opts=( -s "$sub" )
+		heudiconv_f=".heudiconv/$sub"
+		ses=${f#*/}
+		case $ses in
+			ses-*) opts=( ${opts[@]} -ss ${ses#ses-} );
+				   heudiconv_f+="/$ses";;
+		esac
+        rm_f=( $(/bin/ls -1d $f/* | grep -v physio) )  # we might have some physio data which we do not convert
+        # and need to move physio back from moved aside .src before removing
+        #
+		# keep invocation across lines for readability and at the beginning of the line to avoid
+		# all the \t etc.  Trailing slashes ensure absence of not needed \n in the command record.
+		datalad run -m "Reconvert $f" --input sourcedata/$f bash -x -c \
+"rm -rf ${rm_f[*]} $heudiconv_f && \
+ mkdir -p "$heudiconv_f" && \
+ mv sourcedata/$f sourcedata/$f.src && \
+ heudiconv -f $heuristic -c dcm2niix --bids -o . -l . ${opts[*]} --files sourcedata/$f.src -g all >& $heudiconv_f/heudiconv.log && \
+ if [ -e sourcedata/$f.src/physio ] ; then mv sourcedata/$f.src/physio sourcedata/$f/; fi && \
+ rm -rf sourcedata/$f.src"
 	done
 	exit 0
 	;;
