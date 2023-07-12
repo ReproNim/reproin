@@ -60,7 +60,7 @@ lists-update)
 	listfile="$listdir/$Y${M}${DD}.txt"
 	echo "INFO: updating $listfile" >&2
 	# TODO: make more robust here. Go through each accession folder,
-	# and ensure we have permisssion (now we seems just skip), then do not
+	# and ensure we have permission (now we seems just skip), then do not
 	# rely on seeing "scout" (already had to relax to "cout"). Ideally should be a sample
 	# of few DICOMs, e.g. first/last ones among subfolders to possibly catch different
 	# studies dumped into the same folder.  Complain then!
