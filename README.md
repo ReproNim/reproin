@@ -138,7 +138,7 @@ which would provide all necessary for ReproIn setup components.
 It relies on the hardcoded ATM in `reproin` locations and organization
 of DICOMs and location of where to keep converted BIDS datasets.
 
-- `/inbox/DICOM/{YEAR}/{MONTH}/{DAY}/A00{ACCESSION`
+- `/inbox/DICOM/{YEAR}/{MONTH}/{DAY}/A00{ACCESSION}`
 - `/inbox/BIDS/{PI}/{RESEARCHER}/{ID}_{name}/`
 
 ### Cron job
