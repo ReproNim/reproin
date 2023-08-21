@@ -299,8 +299,8 @@ study-show|study-convert)
 			error "Empty subject for $td"
 			exit 1
 		fi
-		if [ -n "$targetsub" ] && [ "${sub_orig}" != "$targetsub" ]; then
-			info "Skipping $subses since ${sub_orig} != $targetsub"
+		if [ -n "$targetsub" ] && [ "${sub}" != "$targetsub" ]; then
+			info "Skipping $subses since ${sub} != $targetsub"
 			continue
 		fi
 
