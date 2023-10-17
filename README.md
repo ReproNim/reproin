@@ -60,8 +60,13 @@ heuristic
    If you do not have one, you could get either of
    - [NeuroDebian Virtual Machine](http://neuro.debian.net/vm.html)
    - ReproIn Docker image: `docker run -it --rm -v $PWD:$PWD repronim/reproin`
-   - ReproIn Singularity image: `singularity pull shub://ReproNim/reproin`
-
+   - ReproIn Singularity image: you can either
+     - convert from the docker image: `singularity pull docker://repronim/reproin`
+     - download the most recent version from
+       http://datasets.datalad.org/?dir=/repronim/containers/images/repronim
+	   which is a DataLad dataset which you can install via `datalad install ///repronim/containers`
+       (see/subscribe https://github.com/ReproNim/reproin/issues/64
+       for HOWTO setup YODA style dataset)
 2. Collect a subject/session (or multiple of them) while placing and
    naming sequences in the scanner following the [specification].
    But for now we will assume that you have no such dataset yet, and
