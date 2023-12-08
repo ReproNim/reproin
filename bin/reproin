@@ -21,6 +21,44 @@ function error() {
 	echo "# ERROR: $@"
 }
 
+function debug() {
+	# echo "# DEBUG: $@"
+	:
+}
+
+
+function setup_containers() {
+	if [ -e code/containers ]; then
+		error "There is already code/containers"
+		exit 1
+	fi
+	mkdir -p code
+	datalad clone -d . --reckless=ephemeral "$local_containers"  code/containers
+	# but make stored url to point to public resource
+	# TODO -- take it from the ephemeral default location
+	git config --file ./.gitmodules submodule."code/containers".url https://datasets.datalad.org/repronim/containers/.git
+	git config --file ./.gitmodules submodule."code/containers".datalad-url https://datasets.datalad.org/repronim/containers/.git
+	( 
+	cd code/containers/
+	scripts/freeze_versions --save-dataset=../../ repronim-reproin
+	)
+	# add bind mounts since we managed to contain it all nicely due to use
+	# of datalad to manage/create hierarchy within heudiconv
+	# TODO: make it so inside would not rely/really need hierarchy but also gets input data
+	cfg=datalad."containers.repronim-reproin".cmdexec ; git config -f .datalad/config "${cfg}" | sed -e "s,{img},-B '$dicomdir' -B '$bidsdir' {img},g" | tr -d '\n' | xargs -0 git config -f .datalad/config ${cfg}
+	datalad save -m "Saving tune ups to enable using the embedded container with reproin" .gitmodules .datalad/config
+}
+
+function setup_devel_reproin() {
+	# overload reproin in container to use the one from github since we have not released/placed into container yet
+	if [ ! -e code/containers ]; then
+		error "Must have setup_containers already"
+		exit 1
+	fi
+	datalad clone -d . https://github.com/ReproNim/reproin code/reproin
+	cfg=datalad."containers.repronim-reproin".cmdexec ; git config -f .datalad/config "${cfg}" | sed -e 's,{img} {cmd}.*,-B {img_dspath}/code/reproin/bin/reproin:/usr/local/bin/reproin {img} /usr/local/bin/reproin {cmd},g' | tr -d '\n' | xargs -0 git config -f .datalad/config ${cfg}
+	datalad save -m "Bundle/use development version of reproin script for now inside the container" .gitmodules .datalad/config
+}
 
 #
 # A Master run script for a study
@@ -34,8 +72,10 @@ if [ "$#" = 0 ]; then
 fi
 
 dicomdir="/inbox/DICOM"
-bidsdir="/inbox/BIDS"
+bidsdir="${BIDS_DIR:-/inbox/BIDS}"
 listdir="$bidsdir/reproin/lists"
+# TODO: make it possible to not rely on local clone or prepopulate if not present?!
+local_containers="~/repronim-containers"
 
 heuristic="reproin"
 
@@ -47,6 +87,8 @@ valconfig=".bids-validator-config.json"
 heudiconvcmd="heudiconv -c dcm2niix --bids -o $bidsdir -g accession_number"
 
 self=$(realpath "$0")
+selftop=$(dirname "$self" | xargs dirname)
+
 action="$1"
 
 # early
@@ -66,6 +108,90 @@ lists-update)
 	# studies dumped into the same folder.  Complain then!
         eval "$heudiconvcmd -f $heuristic --command ls --files $dicomdir/$Y/$M/$D/*/00*cout*" >| "$listfile"
 	exit 0
+	;;
+lists-check)
+	# TODO: add an option to just update when discrepnancy found
+	doit=1
+	Y=${2:-20??}; 
+	M=${3:-??}; 
+	declare -A todo
+	declare -A groups
+	for d in $dicomdir/$Y/$M; do
+		#D=$(basename $d)
+		M=$(basename $d)
+		Y=$(dirname $d | xargs basename)
+		if [ $Y = 2016 ]; then
+			# skip that early one
+			continue
+		fi
+		listfile="$listdir/$Y${M}xx.txt"
+		if [ ! -e $listfile ]; then
+			echo "I: no $listfile"
+			if /bin/ls -d $dicomdir/$Y/$M/*/*/00*cout*; then
+				echo "E: there were legitimatish accession folders with scouts!"
+				todo["${M}_$Y"]="scouts"
+			fi
+			continue
+		fi
+		missing=
+		for a in $dicomdir/$Y/$M/*/*; do
+			# echo "$a"
+			case "$a" in
+			*_backup)
+				if [ -e "${a%_backup}" ] ; then
+					echo "skip odd backup $a for which original also exists";
+					continue
+				fi
+				;;
+			esac
+			# ATM we react only to ones having /00*cout*
+			scouts=$(/bin/ls -1 $a/00*cout* 2>&1 | head -n 1)
+			if echo "$scouts" | grep -q "No such file or directory"; then
+				debug "no scouts under $a"
+				# ls -l $a
+				continue
+			fi
+			if ! grep -q "^$a" "$listfile"; then
+				debug "scouts: >$scouts<"
+				if echo "$scouts" | grep -qi 'permission'; then
+					# no need to try to update list if we have permissions issue
+					# ATM
+					reason="permissions? $(ls -dl $a)"
+					groups[$(stat -c '%G' "$a")]+="$a "
+				else
+					reason="unknown"
+					missing+="$a"
+				fi
+				echo "$a is missing: $reason"
+			fi
+		done
+		if [ -n "$missing" ]; then
+			todo["${M}_$Y"]="missing"
+		fi
+	done
+	exit_code=0
+	if [[ -n "${todo[@]}" ]]; then
+		echo "List of TODOs:"
+		for MY in "${!todo[@]}"; do
+			Y=${MY#*_}
+			M=${MY%_*}
+			cmd="'$0' lists-update $Y $M"
+			if [ -n "$doit" ]; then
+				$cmd
+			else
+				echo $cmd
+			fi
+		done
+		((exit_code += 1))
+	fi
+	if [[ -n "${groups[@]}" ]]; then
+		echo "List of groups for which permissions fail: ${!groups[@]}"
+		for g in "${!groups[@]}"; do
+			echo "  $g: ${groups[$g]}"
+		done
+		((exit_code += 2))
+	fi
+	exit $exit_code
 	;;
 lists-update-summary)
 	# to be used on the stderr output from heudiconv --command ls or lists-update ran by cron job
@@ -176,6 +302,16 @@ study-show-summary)
 	echo " $studyshow.sh $date_modified"
 	exit 0
 	;;
+setup-containers)
+	# just operates in a current folder
+	setup_containers
+	exit 0
+	;;
+setup-devel-reproin)
+	# just operates in a current folder
+	setup_devel_reproin
+	exit 0
+	;;
 esac
 
 # The rest of the commands operate on a given study
@@ -209,6 +345,9 @@ study-create)
 		echo "$study already exists, nothing todo"
 		exit 1;
 	fi
+	if [ ! -e "$bidsdir" ] ; then
+		datalad create -c text2git "$bidsdir"
+	fi
 	cd "$bidsdir"
 	echo "$study" | tr '/' '\n' \
 	| while read d; do
@@ -216,9 +355,9 @@ study-create)
 			if [ "$PWD/$d" == "$studydir" ]; then
 				datalad create --fake-dates -d . "$d"
 			else
-				datalad create -d . "$d"
+				datalad create -c text2git -d . "$d"
 			fi
-			if ! grep -q "\.nfs" "$d/.gitignore"; then
+			if ! grep -q "\.nfs" "$d/.gitignore" 2>/dev/null; then
 				echo ".nfs*" >> "$d/.gitignore"
 				datalad save -d "$d" -m "ignore .nfs* files" "$d/.gitignore"
 			fi
@@ -226,10 +365,27 @@ study-create)
 		cd "$d"
 	done
 	cd "$studydir"
-	datalad run-procedure cfg_reproin_bids
+	datalad -c datalad.locations.user-procedures="$selftop/resources/" run-procedure cfg_reproin_bids
 	git tag -m "The beginning" 0.0.0
 	# after creating a dataset tag it with 0.0.0
 	# This would allow for a sensible git describe output
+
+	# Embrace containerization setup
+	setup_containers
+	setup_devel_reproin
+	;;
+study-remove-subject)
+	# TODO: provision for possibly having a specific session not entire subject
+	git rm -r sub-$sid sourcedata/sub-$sid .heudiconv/$sid
+	echo "not implemented"
+	exit 1
+	;;
+study-remove-subject2redo)
+	echo "not implemented"
+	exit 1
+	# figure out where came from
+	$0 study-remove-subject
+	# add original location to skip file
 	;;
 study-accession-skip)
 	if [ -L "$skipfile" ]; then
