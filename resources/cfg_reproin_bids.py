@@ -9,8 +9,10 @@ would go under git-annex.
 import os
 import sys
 from pathlib import Path  # for compatibility with older DataLad lacking .pathobj
+from datalad.consts import DATASET_CONFIG_FILE
 from datalad.distribution.dataset import require_dataset
 from datalad.support import path as op
+from datalad.utils import ensure_tuple_or_list
 #from datalad.support.external_versions import external_versions as ev
 
 ds = require_dataset(
@@ -97,7 +99,20 @@ ds.save(
     message="Apply default ReproIn BIDS dataset setup",
 )
 
-# run metadata type config last, will do another another commit
-ds.run_procedure(
-    spec=['cfg_metadatatypes', 'bids', 'nifti1'],
+existing_types = ensure_tuple_or_list(
+    ds.config.get('datalad.metadata.nativetype', [], get_all=True))
+for nt in 'bids', 'nifti1':
+    if nt in existing_types:
+        # do not duplicate
+        continue
+    ds.config.add(
+        'datalad.metadata.nativetype',
+        nt,
+        scope='branch',
+        reload=False)
+
+ds.save(
+    path=op.join(ds.path, DATASET_CONFIG_FILE),
+    message="Configure metadata type(s)",
+    result_renderer='disabled'
 )
