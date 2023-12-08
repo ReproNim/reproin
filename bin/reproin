@@ -52,6 +52,8 @@ valconfig=".bids-validator-config.json"
 heudiconvcmd="heudiconv -c dcm2niix --bids -o $bidsdir -g accession_number"
 
 self=$(realpath "$0")
+selftop=$(dirname "$self" | xargs dirname)
+
 action="$1"
 
 # early
@@ -315,7 +317,7 @@ study-create)
 		cd "$d"
 	done
 	cd "$studydir"
-	datalad run-procedure cfg_reproin_bids
+	datalad -c datalad.locations.user-procedures="$selftop/resources/" run-procedure cfg_reproin_bids
 	git tag -m "The beginning" 0.0.0
 	# after creating a dataset tag it with 0.0.0
 	# This would allow for a sensible git describe output
