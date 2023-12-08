@@ -366,6 +366,8 @@ study-create)
 		cd "$d"
 	done
 	cd "$studydir"
+	# TODO: this would not work within container where we install it under /usr/local/bin
+	# So think better
 	datalad -c datalad.locations.user-procedures="$selftop/resources/" run-procedure cfg_reproin_bids
 	git tag -m "The beginning" 0.0.0
 	# after creating a dataset tag it with 0.0.0
