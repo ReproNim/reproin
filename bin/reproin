@@ -45,9 +45,19 @@ function setup_containers() {
 	# add bind mounts since we managed to contain it all nicely due to use
 	# of datalad to manage/create hierarchy within heudiconv
 	# TODO: make it so inside would not rely/really need hierarchy but also gets input data
-	cfg=datalad."containers.repronim-reproin".cmdexec ; git config -f .datalad/config "${cfg}" | sed -e "s,{img},-B '$dicomdir' -B '$bidsdir' {img},g" | | tr -d '\n' | xargs -0 git config -f .datalad/config ${cfg}
-
+	cfg=datalad."containers.repronim-reproin".cmdexec ; git config -f .datalad/config "${cfg}" | sed -e "s,{img},-B '$dicomdir' -B '$bidsdir' {img},g" | tr -d '\n' | xargs -0 git config -f .datalad/config ${cfg}
 	datalad save -m "Saving tune ups to enable using the embedded container with reproin" .gitmodules .datalad/config
+}
+
+function setup_devel_reproin() {
+	# overload reproin in container to use the one from github since we have not released/placed into container yet
+	if [ ! -e code/containers ]; then
+		error "Must have setup_containers already"
+		exit 1
+	fi
+	datalad clone -d . https://github.com/ReproNim/reproin code/reproin
+	cfg=datalad."containers.repronim-reproin".cmdexec ; git config -f .datalad/config "${cfg}" | sed -e 's,{img} {cmd}.*,-B {img_dspath}/code/reproin/bin/reproin:/usr/local/bin/reproin {img} /usr/local/bin/reproin {cmd},g' | tr -d '\n' | xargs -0 git config -f .datalad/config ${cfg}
+	datalad save -m "Bundle/use development version of reproin script for now inside the container" .gitmodules .datalad/config
 }
 
 #
@@ -297,6 +307,11 @@ setup-containers)
 	setup_containers
 	exit 0
 	;;
+setup-devel-reproin)
+	# just operates in a current folder
+	setup_devel_reproin
+	exit 0
+	;;
 esac
 
 # The rest of the commands operate on a given study
@@ -357,6 +372,7 @@ study-create)
 
 	# Embrace containerization setup
 	setup_containers
+	setup_devel_reproin
 	;;
 study-remove-subject)
 	# TODO: provision for possibly having a specific session not entire subject
