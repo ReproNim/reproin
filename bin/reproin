@@ -27,6 +27,29 @@ function debug() {
 }
 
 
+function setup_containers() {
+	if [ -e code/containers ]; then
+		error "There is already code/containers"
+		exit 1
+	fi
+	mkdir -p code
+	datalad clone -d . --reckless=ephemeral "$local_containers"  code/containers
+	# but make stored url to point to public resource
+	# TODO -- take it from the ephemeral default location
+	git config --file ./.gitmodules submodule."code/containers".url https://datasets.datalad.org/repronim/containers/.git
+	git config --file ./.gitmodules submodule."code/containers".datalad-url https://datasets.datalad.org/repronim/containers/.git
+	( 
+	cd code/containers/
+	scripts/freeze_versions --save-dataset=../../ repronim-reproin
+	)
+	# add bind mounts since we managed to contain it all nicely due to use
+	# of datalad to manage/create hierarchy within heudiconv
+	# TODO: make it so inside would not rely/really need hierarchy but also gets input data
+	cfg=datalad."containers.repronim-reproin".cmdexec ; git config -f .datalad/config "${cfg}" | sed -e "s,{img},-B '$dicomdir' -B '$bidsdir' {img},g" | | tr -d '\n' | xargs -0 git config -f .datalad/config ${cfg}
+
+	datalad save -m "Saving tune ups to enable using the embedded container with reproin" .gitmodules .datalad/config
+}
+
 #
 # A Master run script for a study
 #
@@ -41,6 +64,8 @@ fi
 dicomdir="/inbox/DICOM"
 bidsdir="${BIDS_DIR:-/inbox/BIDS}"
 listdir="$bidsdir/reproin/lists"
+# TODO: make it possible to not rely on local clone or prepopulate if not present?!
+local_containers="~/repronim-containers"
 
 heuristic="reproin"
 
@@ -267,6 +292,11 @@ study-show-summary)
 	echo " $studyshow.sh $date_modified"
 	exit 0
 	;;
+setup-containers)
+	# just operates in a current folder
+	setup_containers
+	exit 0
+	;;
 esac
 
 # The rest of the commands operate on a given study
@@ -324,6 +354,9 @@ study-create)
 	git tag -m "The beginning" 0.0.0
 	# after creating a dataset tag it with 0.0.0
 	# This would allow for a sensible git describe output
+
+	# Embrace containerization setup
+	setup_containers
 	;;
 study-remove-subject)
 	# TODO: provision for possibly having a specific session not entire subject
