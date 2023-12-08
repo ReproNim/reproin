@@ -56,7 +56,8 @@ function setup_devel_reproin() {
 		exit 1
 	fi
 	datalad clone -d . https://github.com/ReproNim/reproin code/reproin
-	cfg=datalad."containers.repronim-reproin".cmdexec ; git config -f .datalad/config "${cfg}" | sed -e 's,{img} {cmd}.*,-B {img_dspath}/code/reproin/bin/reproin:/usr/local/bin/reproin {img} /usr/local/bin/reproin {cmd},g' | tr -d '\n' | xargs -0 git config -f .datalad/config ${cfg}
+	cfg=datalad."containers.repronim-reproin".cmdexec
+	git config -f .datalad/config "${cfg}" | sed -e 's,{img} {cmd}.*,-B {img_dspath}/code/reproin/bin/reproin:/usr/local/bin/reproin {img} /usr/local/bin/reproin {cmd},g' -e 's, run , exec ,g' | tr -d '\n' | xargs -0 git config -f .datalad/config ${cfg}
 	datalad save -m "Bundle/use development version of reproin script for now inside the container" .gitmodules .datalad/config
 }
 
