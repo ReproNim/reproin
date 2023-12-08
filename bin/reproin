@@ -39,7 +39,7 @@ if [ "$#" = 0 ]; then
 fi
 
 dicomdir="/inbox/DICOM"
-bidsdir="/inbox/BIDS"
+bidsdir="${BIDS_DIR:-/inbox/BIDS}"
 listdir="$bidsdir/reproin/lists"
 
 heuristic="reproin"
@@ -300,6 +300,9 @@ study-create)
 		echo "$study already exists, nothing todo"
 		exit 1;
 	fi
+	if [ ! -e "$bidsdir" ] ; then
+		datalad create -c text2git "$bidsdir"
+	fi
 	cd "$bidsdir"
 	echo "$study" | tr '/' '\n' \
 	| while read d; do
@@ -307,9 +310,9 @@ study-create)
 			if [ "$PWD/$d" == "$studydir" ]; then
 				datalad create --fake-dates -d . "$d"
 			else
-				datalad create -d . "$d"
+				datalad create -c text2git -d . "$d"
 			fi
-			if ! grep -q "\.nfs" "$d/.gitignore"; then
+			if ! grep -q "\.nfs" "$d/.gitignore" 2>/dev/null; then
 				echo ".nfs*" >> "$d/.gitignore"
 				datalad save -d "$d" -m "ignore .nfs* files" "$d/.gitignore"
 			fi
