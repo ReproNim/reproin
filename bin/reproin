@@ -376,6 +376,7 @@ study-create)
 	# Embrace containerization setup
 	setup_containers
 	setup_devel_reproin
+	$0 study-show-save "$study"
 	;;
 study-remove-subject)
 	# TODO: provision for possibly having a specific session not entire subject
