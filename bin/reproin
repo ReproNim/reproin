@@ -72,11 +72,11 @@ if [ "$#" = 0 ]; then
 	exit 0
 fi
 
-dicomdir="/inbox/DICOM"
+dicomdir="${DICOM_DIR:-/inbox/DICOM}"
 bidsdir="${BIDS_DIR:-/inbox/BIDS}"
 listdir="$bidsdir/reproin/lists"
 # TODO: make it possible to not rely on local clone or prepopulate if not present?!
-local_containers="~/repronim-containers"
+local_containers="${REPRONIM_CONTAINERS:-$HOME/repronim-containers}"
 
 heuristic="reproin"
 
