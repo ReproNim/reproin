@@ -100,6 +100,7 @@ lists-update)
 	M=${3:-`date +%m`}; 
 	D=${4:-*};
 	[ "$D" = "*" ] && DD=xx || DD=$D
+	mkdir -p "$listdir"
 	listfile="$listdir/$Y${M}${DD}.txt"
 	echo "INFO: updating $listfile" >&2
 	# TODO: make more robust here. Go through each accession folder,
