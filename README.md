@@ -135,6 +135,109 @@ tools, any environment providing them would suffice, such as
 other Debian-based systems with NeuroDebian repositories configured,
 which would provide all necessary for ReproIn setup components.
 
+## Getting started from scratch
+
+### Setup environment
+
+reproin script relies on having datalad, datalad-containers, and singularity
+available.  The simplest way to get them all is to install a conda
+distribution, e.g. miniforge ([link for
+amd64](https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh)),
+and setup the environment with all components installed:
+
+    mamba create -n reproin -y datalad datalad-container singularity
+
+Then make sure you have your git configured (adjust to fit your persona)
+
+    git config --global user.name  "My Name"
+    git config --global user.email  "MyName@example.com"
+
+and install the ReproNim/containers
+
+    datalad clone https://github.com/ReproNim/containers repronim-containers
+    cd repronim-containers
+
+which would clone the dataset from GitHub and auto-enable datasets.datalad.org
+remote to actually get annexed content of the images.
+Now fetch the image for the most recent version of reproin from under images/repronim, e.g.
+
+    datalad get images/repronim/repronim-reproin--0.13.1.sing
+    cd ..
+
+### "Install" reproin script
+
+The singularity image we fetched already comes with reproin installed inside,
+but to "drive" conversion we need to have `reproin` available in the base
+environment.  Because we do not have it (yet) packages for conda
+distribution, we will just clone this repository and gain access to the script:
+
+    git clone https://github.com/ReproNim/reproin
+
+To avoid typing the full path to the `reproin` script, can do 
+
+    export "PATH=$PWD/reproin/bin/:$PATH"
+
+to place it in the PATH.
+
+### "Configure" the reproin setup
+
+Currently `reproin` script hardcodes the path to DICOMS to reside under
+`/inbox/DICOM` and extracted lists and converted data to reside under
+`/inbox/BIDS`.
+It is possible to overload location for BIDS via `BIDS_DIR` env variable, so
+we can do e.g.
+
+    export BIDS_DIR=$HOME/BIDS-demo
+
+and then let's create the top-level datalad dataset to contain all converted
+data
+
+    datalad create -c text2git "$BIDS_DIR"
+
+### Collect DICOMs listing
+
+ATM reproin container has older version of the script, so to use newer version we would just bind mount our cloned script inside
+
+    singularity run -e -c \
+       --env BIDS_DIR=$BIDS_DIR \
+       -B $HOME/reproin/bin/reproin:/usr/local/bin/reproin \
+       -B /inbox/DICOM:/inbox/DICOM:ro \
+       -B $BIDS_DIR:$BIDS_DIR \
+       ~/repronim-containers/images/repronim/repronim-reproin--0.13.1.sing lists-update-study-shows
+
+which should output summary over the studies it found under /inbox/DICOM, e.g.
+
+    dbic/QA: new=16 no studydir yet
+    PI/Researcher/1110_SuperCool: new=12 no studydir yet
+
+### Create target dataset
+
+Now we can create "studydir" for the study of interest, e.g.
+
+    reproin study-create dbic/QA
+
+which would
+
+- create target BIDS dataset within the hierarchy
+- install repronim/containers borrowing the image from the `~/repronim-containers`
+- rerun `study-show` to output summary over the current state like
+
+    todo=4 done=0 /afs/.dbic.dartmouth.edu/usr/haxby/yoh/BIDS-demo/dbic/QA/.git/study-show.sh 2024-11-11
+
+### Convert the dataset
+
+Go to the folder of the dataset, e.g. 
+
+
+   cd "$BIDS_DIR/dbic/QA"
+
+to see that `reproin` pre-setup everything needed to run conversion (`cat .datalad/config`).
+And now you should be able to run conversion for your study via "datalad-container"
+extension:
+
+   datalad containers-run -n repronim-reproin study-convert dbic/QA
+
+
 ## Gotchas
 
 
@@ -146,7 +249,7 @@ of DICOMs and location of where to keep converted BIDS datasets.
 - `/inbox/DICOM/{YEAR}/{MONTH}/{DAY}/A00{ACCESSION}`
 - `/inbox/BIDS/{PI}/{RESEARCHER}/{ID}_{name}/`
 
-### Cron job
+### CRON job
 
 ```
 # m h  dom mon dow   command
