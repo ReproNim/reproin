@@ -45,7 +45,13 @@ function setup_containers() {
 	# add bind mounts since we managed to contain it all nicely due to use
 	# of datalad to manage/create hierarchy within heudiconv
 	# TODO: make it so inside would not rely/really need hierarchy but also gets input data
-	cfg=datalad."containers.repronim-reproin".cmdexec ; git config -f .datalad/config "${cfg}" | sed -e "s,{img},-B '$dicomdir' -B '$bidsdir' {img},g" | tr -d '\n' | xargs -0 git config -f .datalad/config ${cfg}
+	if [ -n "$BIDS_DIR" ]; then
+		# if custom folder is used, pass that env and use it to bind-mount
+		bids_mount='-B "$BIDS_DIR" --env "BIDS_DIR=$BIDS_DIR"'
+	else
+		bids_mount='-B "$bidsdir"'
+	fi
+	cfg=datalad."containers.repronim-reproin".cmdexec ; git config -f .datalad/config "${cfg}" | sed -e "s,{img},-B '$dicomdir' $bids_mount {img},g" | tr -d '\n' | xargs -0 git config -f .datalad/config ${cfg}
 	datalad save -m "Saving tune ups to enable using the embedded container with reproin" .gitmodules .datalad/config
 }
 
