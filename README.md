@@ -168,7 +168,7 @@ Now fetch the image for the most recent version of reproin from under images/rep
 
 The singularity image we fetched already comes with reproin installed inside,
 but to "drive" conversion we need to have `reproin` available in the base
-environment.  Because we do not have it (yet) packages for conda
+environment.  Because we do not have it (yet) packaged for conda
 distribution, we will just clone this repository and gain access to the script:
 
     git clone https://github.com/ReproNim/reproin
@@ -190,13 +190,13 @@ we can do e.g.
     export BIDS_DIR=$HOME/BIDS-demo
 
 and then let's create the top-level datalad dataset to contain all converted
-data
+data, configuring to store text files in git rather than git-annex,
 
     datalad create -c text2git "$BIDS_DIR"
 
 ### Collect DICOMs listing
 
-ATM reproin container has older version of the script, so to use newer version we would just bind mount our cloned script inside
+ATM reproin container has an older version of the script, so to use newer version we would just bind mount our cloned script inside,
 
     singularity run -e -c \
        --env BIDS_DIR=$BIDS_DIR \
