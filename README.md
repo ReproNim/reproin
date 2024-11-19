@@ -219,6 +219,8 @@ which should output summary over the studies it found under /inbox/DICOM, e.g.
     dbic/QA: new=16 no studydir yet
     PI/Researcher/1110_SuperCool: new=12 no studydir yet
 
+and you should see a file appeared for the current  year and month under `$BIDS_DIR/reproin/lists`.
+
 ### Create target dataset
 
 Now we can create "studydir" for the study of interest, e.g.
@@ -237,13 +239,13 @@ which would
 
 Go to the folder of the dataset, e.g. 
 
-   cd "$BIDS_DIR/dbic/QA"
+    cd "$BIDS_DIR/dbic/QA"
 
 to see that `reproin` pre-setup everything needed to run conversion (`cat .datalad/config`).
 And now you should be able to run conversion for your study via "datalad-container"
 extension:
 
-   datalad containers-run -n repronim-reproin study-convert dbic/QA
+    datalad containers-run -n repronim-reproin study-convert dbic/QA
 
 
 ## Gotchas
