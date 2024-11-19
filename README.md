@@ -179,6 +179,10 @@ To avoid typing the full path to the `reproin` script, can do
 
 to place it in the PATH.
 
+NB.  It is important ATM to not just `cp` that `reproin` script elsewhere
+because it relies on being able to find other resources made available in that
+repository (e.g., `cfg_reproin_bids.py`).
+
 ### "Configure" the reproin setup
 
 Currently `reproin` script hardcodes the path to DICOMS to reside under
