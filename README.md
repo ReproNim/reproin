@@ -147,7 +147,12 @@ and setup the environment with all components installed:
 
     mamba create -n reproin -y datalad datalad-container singularity
 
-Then make sure you have your git configured (adjust to fit your persona)
+Note that in future sessions you will need to activate this environment:
+
+    mamba activate reproin
+    
+Then make sure you have your git configured. If `git config --list` does not 
+include these entries, add (adjust to fit your persona)
 
     git config --global user.name  "My Name"
     git config --global user.email  "MyName@example.com"
@@ -231,7 +236,6 @@ which would
 ### Convert the dataset
 
 Go to the folder of the dataset, e.g. 
-
 
    cd "$BIDS_DIR/dbic/QA"
 
