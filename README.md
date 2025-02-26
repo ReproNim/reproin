@@ -25,6 +25,8 @@ existing software projects:
 The header of the [heuristic] file describes details of the
 specification on how to organize and name study sequences at MR console.
 
+If you like to use a GUI for crafting the names, consider using [@NPACore's](https://github.com/NPACore) [ReproIn namer](https://npacore.github.io/reproin-namer/#) website.
+
 ## Overall workflow
 
 Schematic description of the overall setup:
