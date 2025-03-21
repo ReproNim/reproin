@@ -84,6 +84,13 @@ listdir="$bidsdir/reproin/lists"
 # TODO: make it possible to not rely on local clone or prepopulate if not present?!
 local_containers="${REPRONIM_CONTAINERS:-$HOME/repronim-containers}"
 
+# To achieve those, we really need to run this script for "lists-update"
+# outside of any container and involve some configured here container for
+# invoking heudiconv, and then when doing study-create or study-convert
+# or any other command, we would use the container registered in that dataset.
+do_auto_create_ds="yes"
+# do_auto_conversion="yes"
+
 heuristic="reproin"
 
 heudiconvdir=".heudiconv"
@@ -260,9 +267,9 @@ reconvert-sourcedata)
 			ses-*) opts=( ${opts[@]} -ss ${ses#ses-} );
 				   heudiconv_f+="/$ses";;
 		esac
-        rm_f=( $(/bin/ls -1d $f/* | grep -v physio) )  # we might have some physio data which we do not convert
-        # and need to move physio back from moved aside .src before removing
-        #
+		rm_f=( $(/bin/ls -1d $f/* | grep -v physio) )  # we might have some physio data which we do not convert
+		# and need to move physio back from moved aside .src before removing
+		#
 		# keep invocation across lines for readability and at the beginning of the line to avoid
 		# all the \t etc.  Trailing slashes ensure absence of not needed \n in the command record.
 		datalad run -m "Reconvert $f" --input sourcedata/$f bash -x -c \
@@ -279,9 +286,17 @@ study-show-save)
 	# to be used on the output from heudiconv --command ls ran by cron job
 	study="$2"
 	studydir="$bidsdir/$study"
+	do_create_ds=no
 	if [ ! -e "$studydir/.git" ]; then
-		echo "no studydir yet"
-	else
+		if [ "$do_auto_create_ds" != "yes" ]; then
+			echo "no studydir yet, and auto creation not enabled by 'do_auto_create_ds'"
+		else
+			# TODO: later -- add duct, and redirect away since it would enup in email
+			$0 study-create "$study"
+			do_create_ds=yes
+		fi
+	fi
+	if [ "$do_create_ds" == "yes" ]; then
 		studyshow="$studydir/.git/study-show"
 		$0 study-show "$study" >| "$studyshow.sh" 2>| "$studyshow.stderr"
 		[ -s "$studyshow.stderr" ] || rm -f "$studyshow.stderr"
@@ -445,6 +460,7 @@ study-show|study-convert)
 		heudiconvcmd="$heudiconvcmd --anon-cmd '$heudiconvdir/anon-cmd'"
 	fi
 
+	do_conversion="$do_auto_conversion"
 	# TODO: use datalad run/containers-run
 	grep -h -B1 "$ostudy[\"']" $listdir/*xx.txt  \
 	| grep 'DICOM.*/\(qa\|A\|202[0-9]\)' \
@@ -514,6 +530,7 @@ study-show|study-convert)
 			subses_ids+=" $td_found_in "
 		else
 			if [[ " $subses_ids " =~ " ${subses_id} " ]]; then
+			  do_conversion=no
 				info "WARNING: $subses_id already known or converted"
 			fi
 			subses_ids+=" $subses_id"
@@ -551,7 +568,7 @@ study-show|study-convert)
 			info "Running validator now"
 			"$self" "validator-save" "$study" || "echo validator failed; check $vallog"
 			if [ -e "$vallog" ]; then
-                           cp --reflink=auto "$vallog" "$subsesheudiconvdir/bids-validator.log"
+				cp --reflink=auto "$vallog" "$subsesheudiconvdir/bids-validator.log"
 			fi
 			datalad save -m "converted subject $sub session $ses" -r . .heudiconv .heudiconv/*
 			;;
