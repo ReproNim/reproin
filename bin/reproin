@@ -590,7 +590,7 @@ validator-save)
 	;;
 validator-summary)
 	info "Errors/warnings from current state of the validator:"
-	grep -E '[0-9]+: \[[A-Z]+\]' "$vallog"
+	grep -E '[0-9]+: \[[A-Z]+\]' "$vallog" || echo "  no messages were found"
 	;;
 validator-show)
 	${PAGER:-vim} $vallog
