@@ -89,7 +89,7 @@ local_containers="${REPRONIM_CONTAINERS:-$HOME/repronim-containers}"
 # invoking heudiconv, and then when doing study-create or study-convert
 # or any other command, we would use the container registered in that dataset.
 do_auto_create_ds="yes"
-# do_auto_conversion="yes"
+do_auto_conversion="yes"
 
 heuristic="reproin"
 
@@ -530,7 +530,7 @@ study-show|study-convert)
 			subses_ids+=" $td_found_in "
 		else
 			if [[ " $subses_ids " =~ " ${subses_id} " ]]; then
-			  do_conversion=no
+			  	do_conversion=no
 				info "WARNING: $subses_id already known or converted"
 			fi
 			subses_ids+=" $subses_id"
