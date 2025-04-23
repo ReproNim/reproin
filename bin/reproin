@@ -5,7 +5,8 @@
 #
 # ATM paths and setup is DBIC specific. TODO - make it use a config file
 #
-set -eu
+set -eu -o pipefail 
+export PS4='+${LINENO}: '
 
 function infodir_sourcepath() {
 	awk -F'"' '/\//{print $2}' .heudiconv/$1/info/filegroup*.json | python3 -c 'import os.path as op, sys; print(op.commonpath(sys.stdin.readlines()))'
@@ -70,7 +71,7 @@ function setup_devel_reproin() {
 #
 # A Master run script for a study
 #
-dcm2niix_version=$(dcm2niix -v|grep '^v' || dcm2niix -v|sed -n -e '/dcm2niiX version v/s,.*X version ,,gp'| sed -e 's,[ \t].*,,g')
+dcm2niix_version=$(dcm2niix -v|grep '^v' || { dcm2niix -v || : ; } |sed -n -e '/dcm2niiX version v/s,.*X version ,,gp'| sed -e 's,[ \t].*,,g')
 if [ "$#" = 0 ]; then
 	echo -n "heudiconv: "
 	heudiconv --version
@@ -89,7 +90,7 @@ local_containers="${REPRONIM_CONTAINERS:-$HOME/repronim-containers}"
 # invoking heudiconv, and then when doing study-create or study-convert
 # or any other command, we would use the container registered in that dataset.
 do_auto_create_ds="yes"
-do_auto_conversion="yes"
+do_auto_conversion="yes"  # TODO: not implemented yet fully
 
 heuristic="reproin"
 
@@ -286,17 +287,19 @@ study-show-save)
 	# to be used on the output from heudiconv --command ls ran by cron job
 	study="$2"
 	studydir="$bidsdir/$study"
-	do_create_ds=no
+	do_study_show=yes
 	if [ ! -e "$studydir/.git" ]; then
-		if [ "$do_auto_create_ds" != "yes" ]; then
-			echo "no studydir yet, and auto creation not enabled by 'do_auto_create_ds'"
-		else
+		if [ "$do_auto_create_ds" == "yes" ]; then
 			# TODO: later -- add duct, and redirect away since it would enup in email
+			echo "creating study directory"
 			$0 study-create "$study"
-			do_create_ds=yes
 		fi
 	fi
-	if [ "$do_create_ds" == "yes" ]; then
+	if [ ! -e "$studydir/.git" ]; then
+		echo "no studydir yet"
+		do_study_show=no
+	fi
+	if [ "$do_study_show" == "yes" ]; then
 		studyshow="$studydir/.git/study-show"
 		$0 study-show "$study" >| "$studyshow.sh" 2>| "$studyshow.stderr"
 		[ -s "$studyshow.stderr" ] || rm -f "$studyshow.stderr"
