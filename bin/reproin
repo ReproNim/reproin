@@ -522,9 +522,18 @@ study-show|study-convert)
 		if [ -n "$srcdir" ] && [ "$srcdir" != "$td" ]; then
 			alert=" !!! came from $srcdir"
 		else
-			alert=
+			alert=""
 		fi
-		td_found_in=$(grep -l -R $td $heudiconvdir/*  2>/dev/null | grep /info/ | sed -e 's,.*\.heudiconv/\(.*\)/info/.*,\1,g' | sort | uniq | tr '\n' ' ' | sed -e 's, *$,,g')
+		td_found_in=$( 
+			{ grep -l -R "$td" "$heudiconvdir"/*  2>/dev/null \
+				| grep /info/ \
+				| sed -E 's,.*\.heudiconv/(.*)/info/.*,\1,g' \
+				| sort \
+				| uniq \
+				| tr '\n' ' ' \
+				| sed -e 's, *$,,g' \
+			|| : ; }
+		)
 		if [ -n "$td_found_in" ] && [ "$td_found_in" != "$subses_id" ] ; then
 			alert=" !!! was converted into $td_found_in$alert"
 			# those were already converted to other, not what is in DICOM
