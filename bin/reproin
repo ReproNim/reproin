@@ -542,7 +542,7 @@ study-show|study-convert)
 			subses_ids+=" $td_found_in "
 		else
 			if [[ " $subses_ids " =~ " ${subses_id} " ]]; then
-			  do_conversion=no
+			  	do_conversion=no
 				info "WARNING: $subses_id already known or converted"
 			fi
 			subses_ids+=" $subses_id"
@@ -602,7 +602,7 @@ validator-save)
 	;;
 validator-summary)
 	info "Errors/warnings from current state of the validator:"
-	grep -E '^\s*[0-9]+: \[' "$vallog"
+	grep -E '[0-9]+: \[[A-Z]+\]' "$vallog" || echo "  no messages were found"
 	;;
 validator-show)
 	${PAGER:-vim} $vallog
