@@ -465,7 +465,7 @@ study-show|study-convert)
 
 	do_conversion="$do_auto_conversion"
 	# TODO: use datalad run/containers-run
-	grep -h -B1 "$ostudy[\"']" $listdir/*xx.txt  \
+	grep -h -B1 "$ostudy[\"']" $listdir/202[3-9]*xx.txt  \
 	| grep 'DICOM.*/\(qa\|A\|202[0-9]\)' \
 	| sed -e 's,/[^/]*$,,g' \
 	| sort \
