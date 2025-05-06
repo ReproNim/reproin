@@ -6,6 +6,7 @@ This is a refactored Python-based version of the ReproIn command-line tool, orig
 
 - Modern Python CLI built with Click
 - Hierarchical command structure for better organization
+- Type-safe configuration using Pydantic
 - Maintains backward compatibility with the original ReproIn bash script
 - Improved error handling and logging
 
@@ -18,6 +19,9 @@ source venv/bin/activate
 
 # Install the package in development mode
 pip install -e .
+
+# Install development dependencies
+pip install -e ".[dev]"
 ```
 
 ## Usage
@@ -57,15 +61,27 @@ reproin validate run <study>
 reproin setup containers
 ```
 
-### Legacy Command Support
+## Configuration
 
-All original commands from the bash script are still supported for backward compatibility, but they show deprecation notices:
+The tool uses environment variables for configuration, defined in the `ReproInSettings` class:
 
+| Environment Variable | Description | Default Value |
+|---------------------|-------------|---------------|
+| `DICOM_DIR` | Directory containing DICOM files | `/inbox/DICOM` |
+| `BIDS_DIR` | Directory for BIDS output | `/inbox/BIDS` |
+| `REPRONIM_CONTAINERS` | Path to local ReproNim containers | `~/repronim-containers` |
+| `REPROIN_HEURISTIC` | Heuristic to use for conversion | `reproin` |
+| `REPROIN_AUTO_CREATE_DS` | Whether to auto-create datasets | `True` |
+| `REPROIN_AUTO_CONVERSION` | Whether to auto-run conversion | `True` |
+
+Example:
 ```bash
-reproin lists-update     # Now: reproin lists update
-reproin study-create     # Now: reproin study create
-reproin study-convert    # Now: reproin study convert
-reproin validator        # Now: reproin validate run
+# Set configuration variables
+export DICOM_DIR=/data/dicom
+export BIDS_DIR=/data/bids
+
+# Run the command
+reproin lists update
 ```
 
 ## Command Groups
@@ -101,14 +117,6 @@ The commands are organized into logical groups:
 5. **reconvert**: Commands for reconverting data
    - `reconvert sourcedata`: Reconvert sourcedata for specific subject/session folders
 
-## Configuration
-
-The tool uses environment variables for configuration:
-
-- `DICOM_DIR`: Directory containing DICOM files (default: `/inbox/DICOM`)
-- `BIDS_DIR`: Directory for BIDS output (default: `/inbox/BIDS`)
-- `REPRONIM_CONTAINERS`: Path to local ReproNim containers (default: `~/repronim-containers`)
-
 ## Development
 
 To contribute to this project:
@@ -128,4 +136,7 @@ pytest
 
 # Run tests with verbose output
 pytest -xvs
+
+# Run tests with coverage
+pytest --cov=reproin
 ```

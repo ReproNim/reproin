@@ -11,6 +11,8 @@ setup(
         "datalad-container",
         "python-dateutil",
         "pyyaml",
+        "pydantic>=2.0.0",
+        "pydantic-settings>=2.0.0",
     ],
     entry_points="""
         [console_scripts]
@@ -26,4 +28,15 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
+    extras_require={
+        "dev": [
+            "pytest",
+            "pytest-cov",
+            "black",
+            "isort",
+            "mypy",
+            "types-PyYAML",
+            "types-python-dateutil",
+        ],
+    },
 )
