@@ -27,6 +27,10 @@ function debug() {
 	:
 }
 
+function wc_hits() {
+	{ grep "$1" "$2" || : ; } | wc -l
+}
+
 
 function setup_containers() {
 	if [ -e code/containers ]; then
@@ -303,17 +307,17 @@ study-show-save)
 		studyshow="$studydir/.git/study-show"
 		$0 study-show "$study" >| "$studyshow.sh" 2>| "$studyshow.stderr"
 		[ -s "$studyshow.stderr" ] || rm -f "$studyshow.stderr"
-		$0 study-show-summary "$study"
+		$0 study-show-summary "$study" || echo "study-show-summary $study errored out, continuing" >&2
 	fi
 	exit 0
 	;;
 study-show-summary)
 	# to be used in conjunction with lists-update-summary-shows or just by itself
 	studyshow="$bidsdir/$2/.git/study-show"
-	todo=$(grep '^heudiconv ' "$studyshow.sh" | wc -l)
-	warnings=$(grep 'WARNING: ' "$studyshow.sh" | wc -l)
-	fixups=$(grep '!!!' "$studyshow.sh" | wc -l)
-	don=$(grep '#.* done ' "$studyshow.sh" | wc -l)
+	todo=$(wc_hits '^heudiconv ' "$studyshow.sh")
+	warnings=$(wc_hits 'WARNING: ' "$studyshow.sh")
+	fixups=$(wc_hits '!!!' "$studyshow.sh")
+	don=$(wc_hits '#.* done ' "$studyshow.sh")
 	echo -n "todo=$todo done=$don"
 	if [ $fixups -gt 0 ]; then
 		echo -n " fixups=$fixups"
