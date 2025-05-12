@@ -5,7 +5,12 @@
 #
 # ATM paths and setup is DBIC specific. TODO - make it use a config file
 #
-set -eu -o pipefail 
+set -eu
+
+# Causes too many pipes overall fail where we actually would just expect
+# empty result, so disabling for now
+# -o pipefail 
+
 export PS4='+${LINENO}: '
 
 function infodir_sourcepath() {
